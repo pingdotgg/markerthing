@@ -20,8 +20,9 @@ export default async function VodPage({
   );
 
   console.log("OAUTH INFO FOR USER", oauthInfo);
-
   const token = oauthInfo[0].token;
+  // The token above is stale on production. It is not stale in any other environment. I have no idea why. Pls help.
+  // TODO: FIX THIS PLS
 
   const vodDetails = await getVodWithMarkers(params.slug, token);
 
