@@ -38,7 +38,7 @@ export type VOD = {
 };
 
 export const getVodWithMarkers = async (vodId: string, token: string) => {
-  const response = await fetch(
+  const markersData = await fetch(
     `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}`,
     {
       method: "GET",
@@ -47,7 +47,9 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
     }
   ).then((response) => response.json());
 
-  const mainRes = await fetch(
+  console.log("MARKER DATA", markersData?.data);
+
+  const vodData = await fetch(
     `https://api.twitch.tv/helix/videos?id=${vodId}`,
     {
       method: "GET",
@@ -56,7 +58,7 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
     }
   ).then((response) => response.json());
 
-  const video = response?.data?.[0]?.videos?.[0];
+  const markers = markersData?.data?.[0]?.videos?.[0]["markers"] ?? [];
 
-  return { ...mainRes?.data?.[0], ...video } as VOD;
+  return { ...vodData?.data?.[0], markers } as VOD;
 };

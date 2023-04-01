@@ -69,7 +69,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
   }, [props.id]);
 
   const videoDuration = props.vod
-    ? getDurationFromTwitchFormat((props.vod as any)?.duration ?? "0s")
+    ? getDurationFromTwitchFormat((props.vod as any)?.duration ?? "0h0m0s")
     : "n/a";
 
   const mockedMarkers = [
