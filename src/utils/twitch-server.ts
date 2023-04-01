@@ -38,7 +38,6 @@ export type VOD = {
 };
 
 export const getVodWithMarkers = async (vodId: string, token: string) => {
-  console.log("RUNNING WITH TOKEN", token);
   const markersResponse = await fetch(
     `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}`,
     {
