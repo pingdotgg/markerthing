@@ -10,7 +10,7 @@ export const metadata = {
 };
 
 import React from "react";
-import { ClerkProvider } from "@clerk/nextjs/app-beta";
+import { ClerkProvider, UserButton } from "@clerk/nextjs/app-beta";
 
 export default function RootLayout({
   children,
@@ -20,7 +20,15 @@ export default function RootLayout({
   return (
     <html lang="en">
       <ClerkProvider>
-        <body>{children}</body>
+        <body>
+          <div className="flex h-screen w-full grow flex-col">
+            <div className="flex w-full justify-between border-b border-white p-4">
+              <span className="text-xl font-bold">MarkerThing</span>
+              <UserButton afterSignOutUrl="/" />
+            </div>
+            {children}
+          </div>
+        </body>
       </ClerkProvider>
     </html>
   );
