@@ -14,10 +14,14 @@ export default async function VodPage({
 
   if (!self) return <div>You have to be signed in</div>;
 
-  const [{ token }] = await clerkClient.users.getUserOauthAccessToken(
+  const [oauthInfo] = await clerkClient.users.getUserOauthAccessToken(
     self.id,
     "oauth_twitch"
   );
+
+  console.log("OAUTH INFO FOR USER", oauthInfo);
+
+  const token = oauthInfo.token;
 
   const vodDetails = await getVodWithMarkers(params.slug, token);
 
