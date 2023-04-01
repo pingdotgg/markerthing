@@ -1,9 +1,17 @@
 import { SignUp } from "@clerk/nextjs/app-beta";
 
-export default function Page() {
+export default function Page({
+  searchParams,
+}: {
+  searchParams: { [key: string]: string | undefined };
+}) {
   return (
     <div className="flex justify-center p-8">
-      <SignUp signInUrl="/sign-in" />
+      <SignUp
+        path="/sign-up"
+        signInUrl="/sign-in"
+        redirectUrl={searchParams.redirect_url || "/"}
+      />
     </div>
   );
 }
