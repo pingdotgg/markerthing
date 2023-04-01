@@ -4,7 +4,7 @@ const nextConfig = {
     appDir: true,
   },
   images: {
-    domains: ["static-cdn.jtvnw.net"],
+    domains: ["static-cdn.jtvnw.net", "vod-secure.twitch.tv"],
   },
 };
 
