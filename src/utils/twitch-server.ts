@@ -24,3 +24,39 @@ export const getTwitchUserId = async (userName: string, token: string) => {
 
   return responseId;
 };
+
+export type VOD = {
+  created_at: string;
+  markers: {
+    id: string;
+    created_at: string;
+    description: string;
+    position_seconds: number;
+    URL: string;
+  }[];
+  duration: string;
+};
+
+export const getVodWithMarkers = async (vodId: string, token: string) => {
+  const response = await fetch(
+    `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}`,
+    {
+      method: "GET",
+      headers: generateTwitchRequestHeaders(token),
+      redirect: "follow",
+    }
+  ).then((response) => response.json());
+
+  const mainRes = await fetch(
+    `https://api.twitch.tv/helix/videos?id=${vodId}`,
+    {
+      method: "GET",
+      headers: generateTwitchRequestHeaders(token),
+      redirect: "follow",
+    }
+  ).then((response) => response.json());
+
+  const video = response?.data?.[0]?.videos?.[0];
+
+  return { ...mainRes?.data?.[0], ...video } as VOD;
+};
