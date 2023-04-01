@@ -4,6 +4,7 @@ import { VodPlayer } from "./player";
 import Script from "next/script";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export default async function VodPage({
   params,
