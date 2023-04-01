@@ -22,9 +22,19 @@ export default function RootLayout({
       <ClerkProvider>
         <body>
           <div className="flex h-screen w-full grow flex-col">
-            <div className="flex w-full justify-between border-b border-white p-4">
-              <span className="text-xl font-bold">MarkerThing</span>
-              <UserButton afterSignOutUrl="/" />
+            <div className="flex w-full items-center justify-between border-b border-white px-4">
+              <span className="py-4 text-2xl font-bold">MarkerThing</span>
+              <UserButton
+                afterSignOutUrl="/"
+                appearance={{
+                  layout: {
+                    logoPlacement: "none",
+                  },
+                  elements: {
+                    userButtonAvatarBox: "h-12 w-12",
+                  },
+                }}
+              />
             </div>
             {children}
           </div>
