@@ -44,7 +44,7 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
       method: "GET",
       headers: generateTwitchRequestHeaders(token),
       redirect: "follow",
-      cache: "no-cache",
+      cache: "no-store",
     }
   ).then((response) => response.json());
 
@@ -56,7 +56,7 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
       method: "GET",
       headers: generateTwitchRequestHeaders(token),
       redirect: "follow",
-      cache: "no-cache",
+      cache: "no-store",
     }
   ).then((response) => response.json());
 
