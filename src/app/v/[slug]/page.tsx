@@ -4,6 +4,9 @@ import { VodPlayer } from "./player";
 import Script from "next/script";
 
 export const dynamic = "force-dynamic";
+
+// I do the revalidate 0 here because "force-dynamic" doesn't actually work
+// See: https://github.com/vercel/next.js/issues/47273
 export const revalidate = 0;
 
 export default async function VodPage({
@@ -22,8 +25,6 @@ export default async function VodPage({
 
   console.log("OAUTH INFO FOR USER", oauthInfo);
   const token = oauthInfo[0].token;
-  // The token above is stale on production. It is not stale in any other environment. I have no idea why. Pls help.
-  // TODO: FIX THIS PLS
 
   const vodDetails = await getVodWithMarkers(params.slug, token);
 
