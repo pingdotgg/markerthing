@@ -1,7 +1,3 @@
-import { Inter } from "next/font/google";
-
-const _inter = Inter({ subsets: ["latin"] });
-
 import { currentUser, clerkClient } from "@clerk/nextjs/app-beta";
 import { Suspense } from "react";
 import { LoadingPage } from "~/components/loading";
