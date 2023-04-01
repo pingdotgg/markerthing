@@ -58,13 +58,13 @@ export const VODs = async (props: { self: User; username: string }) => {
   const data = (response as TwitchVodRequest).data;
 
   return (
-    <div className="flex flex-wrap gap-4 p-4 items-center justify-center h-full w-full">
+    <div className="flex h-full w-full flex-wrap items-center justify-center gap-4 p-4">
       {data.length === 0 && <div className="text-2xl font-bold">No VODs</div>}
       {data.map((vod) => (
         <Link key={vod.id} href={`/v/${vod.id}`}>
           <div
             key={vod.id}
-            className="flex flex-col w-96 h-80 bg-slate-400 rounded-xl overflow-hidden relative hover:opacity-80"
+            className="relative flex w-96 flex-col overflow-hidden rounded-xl hover:opacity-80"
           >
             <Image
               src={vod.thumbnail_url
@@ -75,12 +75,14 @@ export const VODs = async (props: { self: User; username: string }) => {
               alt={"thumbnail"}
               className="w-96"
             />
-            <div className="absolute top-0 left-0 p-2">
-              <div className="font-bold bg-slate-900/70 text-white p-2 rounded-xl">
+            <div className="absolute left-0 top-0 p-2">
+              <div className="rounded-xl bg-slate-900/70 p-2 font-semibold text-white">
                 {dayjs(vod.created_at).format("MM/DD/YYYY")}
               </div>
             </div>
-            <div className="text-xl font-bold p-4">{vod.title}</div>
+            <div className="absolute bottom-0 w-full bg-slate-900/80 p-2 text-lg font-semibold">
+              <span className="line-clamp-1">{vod.title}</span>
+            </div>
           </div>
         </Link>
       ))}
