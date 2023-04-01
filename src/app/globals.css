@@ -2,26 +2,25 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
-  --foreground-rgb: 0, 0, 0;
-  --background-start-rgb: 214, 219, 220;
-  --background-end-rgb: 255, 255, 255;
-}
-
-@media (prefers-color-scheme: dark) {
-  :root {
-    --foreground-rgb: 255, 255, 255;
-    --background-start-rgb: 0, 0, 0;
-    --background-end-rgb: 0, 0, 0;
-  }
-}
-
 body {
-  color: rgb(var(--foreground-rgb));
-  background: linear-gradient(
-      to bottom,
-      transparent,
-      rgb(var(--background-end-rgb))
-    )
-    rgb(var(--background-start-rgb));
+  @apply bg-black text-white;
+  overscroll-behavior-y: none;
+}
+
+/* Loading spinner stuff */
+.spinner_ZCsl {
+  animation: spinner_qV4G 1.2s cubic-bezier(0.52, 0.6, 0.25, 0.99) infinite;
+}
+.spinner_gaIW {
+  animation-delay: 0.6s;
+}
+@keyframes spinner_qV4G {
+  0% {
+    r: 0;
+    opacity: 1;
+  }
+  100% {
+    r: 11px;
+    opacity: 0;
+  }
 }
