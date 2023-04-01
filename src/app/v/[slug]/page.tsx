@@ -3,6 +3,8 @@ import { getVodWithMarkers } from "~/utils/twitch-server";
 import { VodPlayer } from "./player";
 import Script from "next/script";
 
+export const dynamic = "force-dynamic";
+
 export default async function VodPage({
   params,
 }: {
