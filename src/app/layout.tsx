@@ -6,6 +6,7 @@ const inter = Inter({ subsets: ["latin"] });
 export const metadata = {
   title: "Marker Tool",
   description: "By Ping.gg",
+  icons: "/favicon.svg",
 };
 
 import React from "react";
