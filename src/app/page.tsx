@@ -4,6 +4,9 @@ import { LoadingPage } from "~/components/loading";
 import { VODs } from "./(components)/vods";
 
 export const dynamic = "force-dynamic";
+// I do the revalidate 0 here because "force-dynamic" doesn't actually work
+// See: https://github.com/vercel/next.js/issues/47273
+export const revalidate = 0;
 
 export default async function Home() {
   const self = await currentUser();

@@ -1,12 +1,26 @@
 import type { User } from "@clerk/nextjs/dist/api";
 import {
   generateTwitchRequestHeaders,
+  getTwitchTokenFromClerk,
   getTwitchUserId,
+  getValidTokenForCreator,
 } from "~/utils/twitch-server";
 import Link from "next/link";
 import Image from "next/image";
 import dayjs from "dayjs";
 import { clerkClient } from "@clerk/nextjs/app-beta";
+
+const getTwitchClientCredentials = async () => {
+  const response = await fetch(
+    `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
+    {
+      method: "POST",
+      redirect: "follow",
+    }
+  ).then((response) => response.json());
+
+  return response.access_token as string;
+};
 
 interface Pagination {
   cursor: string;
@@ -36,19 +50,19 @@ interface VodResponse {
 }
 
 export const VODs = async (props: { self: User; username: string }) => {
-  const [{ token }] = await clerkClient.users.getUserOauthAccessToken(
-    props.self.id,
-    "oauth_twitch"
-  );
+  const token = await getValidTokenForCreator(props.username);
+  const creds = await getTwitchClientCredentials();
 
-  const twitchUserId = await getTwitchUserId(props.username, token);
+  console.log("token?", creds);
+
+  const twitchUserId = await getTwitchUserId(props.username, creds);
 
   // fetch vods from twitch api
   const response = await fetch(
     `https://api.twitch.tv/helix/videos?user_id=${twitchUserId}`,
     {
       method: "GET",
-      headers: generateTwitchRequestHeaders(token),
+      headers: generateTwitchRequestHeaders(creds),
       redirect: "follow",
     }
   ).then((response) => response.json());
