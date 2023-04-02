@@ -11,8 +11,10 @@ export const metadata = {
 
 import React from "react";
 import { ClerkProvider, UserButton } from "@clerk/nextjs/app-beta";
-import Link from "next/link";
-import Icon from "./(components)/icon";
+import { dark } from "@clerk/themes";
+
+import Background from "../assets/background.svg";
+import { LogoMark } from "./(components)/logomark";
 
 export default function RootLayout({
   children,
@@ -21,17 +23,18 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
-      <ClerkProvider>
-        <body>
+      <ClerkProvider
+        appearance={{
+          baseTheme: dark,
+        }}
+      >
+        <body
+          className="bg-landing"
+          style={{ backgroundImage: `url(${Background.src})` }}
+        >
           <div className="flex h-screen w-full grow flex-col">
-            <div className="flex w-full items-center justify-between border-b border-white px-4">
-              <Link
-                href="/"
-                className="flex items-center gap-2 py-4 text-2xl font-bold"
-              >
-                <Icon size={32} />
-                MarkerThing
-              </Link>
+            <div className="flex w-full items-center justify-between px-8 pt-4">
+              <LogoMark />
 
               <UserButton
                 afterSignOutUrl="/"
@@ -46,6 +49,45 @@ export default function RootLayout({
               />
             </div>
             {children}
+            <div className="flex justify-between px-8 py-4">
+              <span>
+                Made with &hearts; by{" "}
+                <a
+                  href="https://ping.gg"
+                  className="font-bold text-pink-300 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Ping.gg
+                </a>
+              </span>
+              <div className="flex gap-4">
+                <a
+                  href="https://github.com/pingdotgg/markerthing/issues"
+                  className="font-bold text-pink-300 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Feedback
+                </a>
+                <a
+                  href="https://github.com/pingdotgg/markerthing"
+                  className="font-bold text-pink-300 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Github
+                </a>
+                <a
+                  href="https://ping.gg/discord"
+                  className="font-bold text-pink-300 hover:underline"
+                  target="_blank"
+                  rel="noreferrer"
+                >
+                  Discord
+                </a>
+              </div>
+            </div>
           </div>
         </body>
       </ClerkProvider>

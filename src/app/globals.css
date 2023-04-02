@@ -1,10 +1,197 @@
+/* ./styles/globals.css */
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
+html,
 body {
-  @apply bg-black text-white;
-  overscroll-behavior-y: none;
+  padding: 0;
+  margin: 0;
+  font-family: "Inter", -apple-system, "Segoe UI", "Roboto", "Oxygen", "Ubuntu",
+    "Cantarell", "Fira Sans", "Droid Sans", "Helvetica Neue", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  scroll-behavior: smooth;
+}
+
+body {
+  @apply bg-gray-900 text-gray-100;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+*::-webkit-scrollbar {
+  width: 0;
+  background-color: transparent;
+}
+
+.no-block {
+  margin-block: 0 !important;
+}
+
+.muted-duotone-icon {
+  --fa-primary-color: theme("colors.red.500");
+  --fa-secondary-color: theme("colors.gray.200");
+  --fa-secondary-opacity: 1;
+}
+
+/* Chrome, Safari, Edge, Opera */
+/* Hide arrows for number inputs */
+input::-webkit-outer-spin-button,
+input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+/* Firefox */
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+/* Style the color picker */
+input[type="color"] {
+  width: 3rem;
+  height: 3rem;
+  background-color: transparent;
+  border-radius: 100%;
+}
+input[type="color"]::-webkit-color-swatch-wrapper {
+  padding: 0;
+}
+input[type="color"]::-webkit-color-swatch {
+  border: none;
+  border-radius: 100%;
+}
+
+.input-group > * {
+  @apply rounded-none border-l-0;
+}
+
+.input-group > *:first-child {
+  @apply rounded-l border-l;
+}
+
+.input-group > *:last-child {
+  @apply rounded-r;
+}
+
+/*
+ * Fancy scroll shadows
+ * @see https://css-tricks.com/books/greatest-css-tricks/scroll-shadows/
+ */
+.scroll-shadows {
+  --bgRGB: 24, 24, 27;
+  --bg: rgb(var(--bgRGB));
+  --bgTrans: rgba(var(--bgRGB), 0);
+
+  --shadow: rgba(12, 12, 14, 0.8);
+
+  background:
+    /* Shadow Cover TOP */ linear-gradient(
+        var(--bg) 30%,
+        var(--bgTrans)
+      )
+      center top,
+    /* Shadow Cover BOTTOM */ linear-gradient(var(--bgTrans), var(--bg) 70%)
+      center bottom,
+    /* Shadow TOP */
+      radial-gradient(farthest-side at 50% 0, var(--shadow), rgba(0, 0, 0, 0))
+      center top,
+    /* Shadow BOTTOM */
+      radial-gradient(
+        farthest-side at 50% 100%,
+        var(--shadow),
+        rgba(0, 0, 0, 0)
+      )
+      center bottom;
+
+  background-repeat: no-repeat;
+  background-size: 100% 80px, 100% 80px, 100% 28px, 100% 28px;
+  background-attachment: local, local, scroll, scroll;
+}
+
+/*
+ * Help Chrome word break better
+ */
+.break-words {
+  word-break: break-word;
+}
+
+/* 
+ * React Toastify Theming
+ */
+body {
+  --toastify-color-light: theme("colors.white");
+  --toastify-color-dark: theme("colors.gray.800");
+  --toastify-color-info: theme("colors.pink.600");
+  --toastify-color-success: theme("colors.green.700");
+  --toastify-color-warning: theme("colors.yellow.600");
+  --toastify-color-error: theme("colors.red.600");
+  --toastify-color-progress-dark: theme("colors.pink.600");
+  --toastify-font-family: theme("fontFamily.display");
+
+  --toastify-toast-width: theme("spacing.96");
+  --toastify-toast-min-height: min-content;
+}
+
+.Toastify__toast {
+  @apply items-center shadow-lg sm:rounded-lg;
+}
+
+.Toastify__toast-theme--dark {
+  @apply border-b border-gray-700 sm:border;
+}
+
+.Toastify__toast-body {
+  @apply m-0 p-0 text-sm font-medium;
+}
+
+.Toastify__close-button {
+  align-self: center;
+}
+
+/* 
+ * Stripped down version of the tippy animation so our tooltips fade
+ */
+.tippy-box[data-animation="fade"][data-state="hidden"] {
+  opacity: 0;
+}
+
+.safari-video-overflow-fix {
+  mask-image: -webkit-radial-gradient(white, black);
+}
+
+@layer utilities {
+  @variants responsive {
+    .perspective {
+      transform: perspective(1500px) rotateY(-15deg);
+    }
+    .perspective-hero {
+      transform: perspective(1px) skewY(330deg);
+    }
+
+    .gradient-mask-hero {
+      mask-image: linear-gradient(to right, black, black, transparent);
+    }
+
+    .rechart-labels-visible .recharts-cartesian-axis-tick-value {
+      opacity: 1;
+    }
+    .rechart-labels-hidden .recharts-cartesian-axis-tick-value {
+      opacity: 0;
+    }
+  }
+
+  .ligatures-none {
+    font-variant-ligatures: none;
+  }
 }
 
 /* Loading spinner stuff */

@@ -25,9 +25,9 @@ export default async function VodPage({
   const vodDetails = await getVodWithMarkers(params.slug, token);
 
   return (
-    <div>
+    <>
       <Script src="https://player.twitch.tv/js/embed/v1.js" async />
       <VodPlayer id={params.slug} vod={vodDetails} />
-    </div>
+    </>
   );
 }

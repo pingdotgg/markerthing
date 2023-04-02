@@ -3,6 +3,9 @@
 import * as dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { useEffect, useMemo, useState } from "react";
+import { ButtonLink } from "~/app/(components)/common/button";
+import { Card } from "~/app/(components)/common/card";
+import { TextInput } from "~/app/(components)/common/text-input";
 import type { VOD } from "~/utils/twitch-server";
 import { Player } from "~/utils/types/twitch-player";
 dayjs.extend(duration);
@@ -96,55 +99,75 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
   });
 
   return (
-    <div className="container mx-auto flex items-center justify-center w-screen p-4">
-      <div className="flex flex-col w-full">
-        <div id="vod-player" className="w-full aspect-video" />
+    <div className="grid min-h-0 flex-1 grid-rows-3 items-start gap-4 overflow-y-hidden p-4 sm:grid-cols-3 sm:grid-rows-1 sm:gap-8 sm:p-8">
+      {/* Video Player */}
+      <div className="row-span-1 flex w-full flex-col sm:col-span-2">
+        <div id="vod-player" className="aspect-video w-full" />
       </div>
-      <div className="flex flex-col gap-4 w-96 justify-center items-center">
-        <div className="text-2xl font-bold text-slate-100">Timestamps</div>
-        {props.vod &&
-          mockedMarkers.map((marker, index) => {
-            return (
-              <div
-                key={marker.id}
-                className="flex flex-col text-center items-center"
-              >
-                <div className="font-bold py-1 font-mono text-xl text-slate-200">
+      {/* Timestamps */}
+      <div className="row-span-2 flex h-full min-h-0 flex-col gap-2 sm:col-span-1 sm:row-span-1">
+        <div className="flex items-center justify-between">
+          <h1 className="flex items-center gap-1.5 text-lg font-semibold ">
+            <span>Timestamps</span>
+          </h1>
+          <ButtonLink
+            href={`data:text/csv;charset=utf-8,${encodeURIComponent(
+              csv.join("\n")
+            )}`}
+            {...{
+              download: `${props.vod?.created_at} VOD MARKERS${
+                offset ? ` - ${offset}s` : ""
+              }`,
+            }}
+          >
+            {`Download CSV`}
+          </ButtonLink>
+        </div>
+
+        <Card className="p-2">
+          <label
+            htmlFor="offset"
+            className="block text-sm font-medium leading-6 text-gray-200"
+          >
+            {`Offset`}
+          </label>
+          <TextInput
+            type="number"
+            value={offset}
+            onChange={(e) => {
+              setOffset(parseInt(e.currentTarget.value, 10));
+            }}
+            suffixEl={<span className="text-gray-300">{`seconds`}</span>}
+          />
+        </Card>
+
+        {props.vod && (
+          <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg bg-gray-950/25 p-2">
+            {mockedMarkers.map((marker, index) => {
+              return (
+                <li key={marker.id}>
                   <button
+                    className="w-full"
                     onClick={() => {
                       player?.seek(marker.position_seconds);
                     }}
                   >
-                    {dayjs
-                      .duration(marker.position_seconds * 1000)
-                      .format("HH:mm:ss")}
+                    <Card className="flex animate-fade-in-down flex-col gap-4 p-4 text-left">
+                      <div className="break-words">{marker.description}</div>
+                      <div className="flex items-center justify-between text-gray-300">
+                        <div className="text-sm">
+                          {dayjs
+                            .duration(marker.position_seconds * 1000)
+                            .format("HH:mm:ss")}
+                        </div>
+                      </div>
+                    </Card>
                   </button>
-                </div>
-
-                <div className="text-slate-300">{marker.description}</div>
-              </div>
-            );
-          })}
-        <a
-          href={`data:text/csv;charset=utf-8,${encodeURIComponent(
-            csv.join("\n")
-          )}`}
-          {...{
-            download: `${props.vod?.created_at} VOD MARKERS${
-              offset ? ` - ${offset}s` : ""
-            }`,
-          }}
-          className="text-slate-100 font-bold text-xl"
-        >
-          Download CSV
-        </a>
-        <input
-          type="number"
-          value={offset}
-          onChange={(e) => {
-            setOffset(parseInt(e.currentTarget.value, 10));
-          }}
-        ></input>
+                </li>
+              );
+            })}
+          </ul>
+        )}
       </div>
     </div>
   );
