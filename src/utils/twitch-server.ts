@@ -1,16 +1,15 @@
 import { clerkClient, currentUser } from "@clerk/nextjs/app-beta";
 
-export const generateTwitchRequestHeaders = (accessToken?: string) => {
+export const generateTwitchRequestHeaders = (accessToken: string) => {
   const headers = new Headers();
   headers.append("Client-ID", process.env.TWITCH_CLIENT_ID!);
   headers.append("Accept", "application/vnd.twitchtv.v5+json");
-
-  if (accessToken) headers.append("Authorization", `Bearer ${accessToken}`);
+  headers.append("Authorization", `Bearer ${accessToken}`);
 
   return headers;
 };
 
-export const getTwitchUserId = async (userName: string, token?: string) => {
+export const getTwitchUserId = async (userName: string, token: string) => {
   const res = await fetch(
     `https://api.twitch.tv/helix/users?login=${userName}`,
     {

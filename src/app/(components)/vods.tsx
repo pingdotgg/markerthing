@@ -6,7 +6,6 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import dayjs from "dayjs";
-import { clerkClient } from "@clerk/nextjs/app-beta";
 
 const getTwitchClientCredentials = async () => {
   const response = await fetch(

@@ -9,7 +9,6 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home({ params }: { params: { slug: string } }) {
-  console.log("params?", params);
   const self = await currentUser();
   if (!self) throw new Error("you shouldn't be here");
   return (
