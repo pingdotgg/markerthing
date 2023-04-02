@@ -46,6 +46,19 @@ interface VodResponse {
   created_at: string;
 }
 
+const VodEmptyState = () => {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center p-2 text-gray-500">
+      <h3 className="mt-6 text-lg font-medium text-gray-400">
+        {"It's awfully quiet here..."}
+      </h3>
+      <p className="mt-1 text-sm ">
+        Stream on Twitch to have your VODs appear here.
+      </p>
+    </div>
+  );
+};
+
 export const VODs = async (props: { self: User; username: string }) => {
   const creds = await getTwitchClientCredentials();
   const twitchUserId = await getTwitchUserId(props.username, creds);
@@ -64,12 +77,12 @@ export const VODs = async (props: { self: User; username: string }) => {
 
   return (
     <div className="flex h-full w-full flex-wrap items-center justify-center gap-4 p-4">
-      {data.length === 0 && <div className="text-2xl font-bold">No VODs</div>}
+      {data.length === 0 && <VodEmptyState />}
       {data.map((vod) => (
         <Link key={vod.id} href={`/v/${vod.id}`}>
           <div
             key={vod.id}
-            className="relative flex w-96 flex-col overflow-hidden rounded-xl hover:opacity-80"
+            className="group relative flex w-96 flex-col overflow-hidden rounded-lg bg-black"
           >
             <Image
               src={vod.thumbnail_url
@@ -78,14 +91,14 @@ export const VODs = async (props: { self: User; username: string }) => {
               width={1280}
               height={720}
               alt={"thumbnail"}
-              className="w-96"
+              className="w-96 group-hover:opacity-50"
             />
             <div className="absolute left-0 top-0 p-2">
-              <div className="rounded-xl bg-slate-900/70 p-2 font-semibold text-white">
+              <div className="rounded-lg bg-gray-900/70 px-2 py-1 font-semibold text-white">
                 {dayjs(vod.created_at).format("MM/DD/YYYY")}
               </div>
             </div>
-            <div className="absolute bottom-0 w-full bg-slate-900/80 p-2 text-lg font-semibold">
+            <div className="absolute bottom-0 w-full bg-gray-900/80 px-3 py-2 text-lg font-semibold">
               <span className="line-clamp-1">{vod.title}</span>
             </div>
           </div>
