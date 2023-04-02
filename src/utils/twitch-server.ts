@@ -20,11 +20,8 @@ export const getTwitchUserId = async (userName: string, token?: string) => {
       cache: "no-store",
     }
   ).then((response) => response.json());
-  console.log("user Id get?", res);
-
   if (res.error === "Unauthorized") throw new Error("Unauthorized");
 
-  console.log("user Id get?", res);
   const responseId = (res as any)?.data[0]?.id as string;
   if (!responseId) return null;
 
