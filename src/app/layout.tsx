@@ -4,8 +4,9 @@ import { Inter } from "next/font/google";
 const inter = Inter({ subsets: ["latin"] });
 
 export const metadata = {
-  title: "Marker Tool",
-  description: "By Ping.gg",
+  title: "MarkerThing",
+  description:
+    "MarkerThing By Ping.gg - Export Twitch Markers as .csv with ease",
   icons: "/favicon.svg",
 };
 
