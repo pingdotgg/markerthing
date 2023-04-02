@@ -1,9 +1,7 @@
 import type { User } from "@clerk/nextjs/dist/api";
 import {
   generateTwitchRequestHeaders,
-  getTwitchTokenFromClerk,
   getTwitchUserId,
-  getValidTokenForCreator,
 } from "~/utils/twitch-server";
 import Link from "next/link";
 import Image from "next/image";
@@ -50,11 +48,7 @@ interface VodResponse {
 }
 
 export const VODs = async (props: { self: User; username: string }) => {
-  const token = await getValidTokenForCreator(props.username);
   const creds = await getTwitchClientCredentials();
-
-  console.log("token?", creds);
-
   const twitchUserId = await getTwitchUserId(props.username, creds);
 
   // fetch vods from twitch api
@@ -66,8 +60,6 @@ export const VODs = async (props: { self: User; username: string }) => {
       redirect: "follow",
     }
   ).then((response) => response.json());
-
-  console.log("res", response);
 
   const data = (response as TwitchVodRequest).data;
 

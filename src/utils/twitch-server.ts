@@ -3,7 +3,7 @@ import { clerkClient, currentUser } from "@clerk/nextjs/app-beta";
 export const generateTwitchRequestHeaders = (accessToken?: string) => {
   const headers = new Headers();
   headers.append("Client-ID", process.env.TWITCH_CLIENT_ID!);
-  // headers.append("Accept", process.env.TWITCH_CLIENT_SECRET!);
+  headers.append("Accept", "application/vnd.twitchtv.v5+json");
 
   if (accessToken) headers.append("Authorization", `Bearer ${accessToken}`);
 
@@ -41,6 +41,23 @@ export type VOD = {
     URL: string;
   }[];
   duration: string;
+};
+
+// Used for vod markers
+const getValidTokenForCreator = async (creatorName: string) => {
+  // Get token for the input displayName IF THEY HAVE SIGNED IN BEFORE
+  const [creatorFoundInClerk] = await clerkClient.users.getUserList({
+    username: [creatorName],
+  });
+
+  console.log("found in clerk?", creatorFoundInClerk);
+
+  // Early escape if we don't find this user in Clerk
+  if (!creatorFoundInClerk) {
+    throw new Error("User not found in Clerk");
+  }
+
+  return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
 };
 
 export const getVodWithMarkers = async (vodId: string, token: string) => {
@@ -92,25 +109,4 @@ export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
   );
 
   return token;
-};
-
-export const getValidTokenForCreator = async (creatorName: string) => {
-  // Start getting this user's twitch token as a backup
-  const backupCurrentUserTokenPromise = currentUser().then((u) =>
-    getTwitchTokenFromClerk(u!.id)
-  );
-
-  // Get token for the input displayName IF THEY HAVE SIGNED IN BEFORE
-  const [creatorFoundInClerk] = await clerkClient.users.getUserList({
-    username: [creatorName],
-  });
-
-  console.log("found in clerk?", creatorFoundInClerk);
-
-  // Early escape if we don't find this user in Clerk
-  if (!creatorFoundInClerk) {
-    return await backupCurrentUserTokenPromise;
-  }
-
-  return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
 };
