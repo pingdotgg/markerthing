@@ -1,36 +1,20 @@
-This is a [Next.js](https://nextjs.org/) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# [MarkerThing](https://marker.ping.gg) (by [Ping](https://ping.gg))
 
-## Getting Started
+tl;dr - grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/s/article/creating-highlights-and-stream-markers?language=en_US#:~:text=in%20light%20purple.-,Stream%20Markers,-Stream%20Markers%20are) to use with [LosslessCut](https://github.com/mifi/lossless-cut)
 
-First, run the development server:
+## More Info
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-```
+[Theo](https://twitter.com/t3dotgg) wanted a better way to manage the markers from his streams. He uses them as reference points to grab chunks of video for his editors. This app lets you see all the markers trivially as well as exporting them to a CSV file.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+The CSV files exported are designed to be used with [LosslessCut](https://github.com/mifi/lossless-cut), a phenomenal open source video cutting tool. We also included a time offset option to set all the times forward or backward by a chosen number of seconds.
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## My workflow:
 
-[http://localhost:3000/api/hello](http://localhost:3000/api/hello) is an endpoint that uses [Route Handlers](https://beta.nextjs.org/docs/routing/route-handlers). This endpoint can be edited in `app/api/hello/route.ts`.
+- Stream on Twitch, record vod + footage on camera
+- During stream, create new markers using `/marker (name of marker)` command
+- End of stream, download CSVs from MarkerThing
+  - I make a second offset CSV for my camera footage, since I start recording it after I start the stream
+- Open LosslessCut, drag VOD in, drag CSV in, "export"
+- ^ again, with camera recordings + offset CSV
 
-This project uses [`next/font`](https://nextjs.org/docs/basic-features/font-optimization) to automatically optimize and load Inter, a custom Google Font.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js/) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/deployment) for more details.
+This workflow takes me ~3 minutes, and it enables my team to quickly grab 5+ videos worth of content after every stream.
