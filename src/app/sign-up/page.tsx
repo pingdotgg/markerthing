@@ -7,11 +7,7 @@ export default function Page({
 }) {
   return (
     <div className="flex justify-center p-8">
-      <SignUp
-        path="/sign-up"
-        signInUrl="/sign-in"
-        redirectUrl={searchParams.redirect_url || "/"}
-      />
+      <SignUp path="/sign-up" signInUrl="/sign-in" />
     </div>
   );
 }
