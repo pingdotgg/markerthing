@@ -35,7 +35,7 @@ export default function RootLayout({
       >
         <body
           className="bg-landing"
-          style={{ backgroundImage: `url(${Background.src})` }}
+          style={{ backgroundImage: `url(/background.svg)` }}
         >
           <div className="flex h-screen w-full grow flex-col">
             <div className="flex w-full items-center justify-between px-8 pt-4">
