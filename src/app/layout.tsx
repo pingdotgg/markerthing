@@ -16,6 +16,7 @@ import { dark } from "@clerk/themes";
 
 import Background from "../assets/background.svg";
 import { LogoMark } from "./(components)/logomark";
+import PlausibleProvider from "next-plausible";
 
 export default function RootLayout({
   children,
@@ -24,6 +25,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en">
+      <head>
+        <PlausibleProvider domain="marker.ping.gg" />
+      </head>
       <ClerkProvider
         appearance={{
           baseTheme: dark,
