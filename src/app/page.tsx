@@ -1,7 +1,8 @@
-import { UserButton, currentUser } from "@clerk/nextjs/app-beta";
+import { currentUser } from "@clerk/nextjs/app-beta";
 import { Suspense } from "react";
 import { LoadingPage } from "~/components/loading";
 import { VODs } from "./(components)/vods";
+import { ButtonLink } from "./(components)/common/button";
 
 export const dynamic = "force-dynamic";
 // I do the revalidate 0 here because "force-dynamic" doesn't actually work
@@ -12,9 +13,11 @@ export default async function Home() {
   const self = await currentUser();
   if (!self) throw new Error("you shouldn't be here");
   return (
-    <Suspense fallback={<LoadingPage />}>
-      {/* @ts-expect-error Server Component */}
-      <VODs self={self} username={self.username} />
-    </Suspense>
+    <div className="my-auto flex flex-col items-center justify-center">
+      {`You're logged in!`}
+      <ButtonLink href={`/${self.username}`} className="mt-4">
+        Click here to view your VODs
+      </ButtonLink>
+    </div>
   );
 }
