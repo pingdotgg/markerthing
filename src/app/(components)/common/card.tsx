@@ -5,7 +5,7 @@ export const Card: React.FC<
   {
     className?: string;
   } & HTMLAttributes<HTMLDivElement>
-> = ({ className, ...rest }) => {
+> = ({ className, children, ...rest }) => {
   return (
     <div
       className={classNames(
@@ -13,6 +13,8 @@ export const Card: React.FC<
         className
       )}
       {...rest}
-    ></div>
+    >
+      {children}
+    </div>
   );
 };

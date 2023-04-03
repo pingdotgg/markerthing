@@ -22,7 +22,7 @@ export const TextInput = React.forwardRef<
         className
       )}
     >
-      {prefixEl && (
+      {!!prefixEl && (
         <div className="flex items-center pl-2 text-gray-400 sm:text-sm">
           {prefixEl}
         </div>
@@ -33,7 +33,7 @@ export const TextInput = React.forwardRef<
         {...rest}
         ref={ref}
       />
-      {suffixEl && (
+      {!!suffixEl && (
         <div className="flex items-center pr-2 text-gray-400 sm:text-sm">
           {suffixEl}
         </div>

@@ -111,7 +111,7 @@ const ButtonContent: React.FC<{
   children?: React.ReactNode;
 }> = ({ loading, icon, iconPosition = "start", size = "base", children }) => {
   return (
-    <React.Fragment>
+    <>
       {loading && (
         <span className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2">
           <LoadingSpinner />
@@ -140,7 +140,7 @@ const ButtonContent: React.FC<{
           {icon}
         </span>
       )}
-    </React.Fragment>
+    </>
   );
 };
 
