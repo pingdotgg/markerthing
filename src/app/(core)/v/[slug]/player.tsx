@@ -101,7 +101,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
   return (
     <div className="grid min-h-0 flex-1 grid-rows-3 items-start gap-4 overflow-y-hidden p-4 sm:grid-cols-3 sm:grid-rows-1 sm:gap-8 sm:p-8">
       {/* Video Player */}
-      <div className="row-span-1 flex w-full flex-col overflow-hidden rounded-lg border border-gray-950 shadow-md sm:col-span-2">
+      <div className="row-span-1 flex w-full flex-col overflow-hidden rounded-lg border border-gray-950 bg-gray-950 shadow-md sm:col-span-2">
         <div id="vod-player" className="aspect-video w-full !rounded-lg" />
       </div>
       {/* Timestamps */}
