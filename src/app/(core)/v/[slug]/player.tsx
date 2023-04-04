@@ -104,8 +104,8 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
       <div className="row-span-1 flex w-full flex-col overflow-hidden rounded-lg border border-gray-950 bg-gray-950 shadow-md sm:col-span-2">
         <div id="vod-player" className="aspect-video w-full !rounded-lg" />
       </div>
-      {/* Timestamps */}
 
+      {/* Timestamps */}
       <Card className="row-span-2 flex h-full min-h-0 flex-col gap-2 p-4 shadow-md sm:col-span-1 sm:row-span-1">
         <div className="flex items-center justify-between">
           <h1 className="flex items-center gap-1.5 text-lg font-semibold ">
@@ -125,23 +125,25 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           </ButtonLink>
         </div>
 
-        <label
-          htmlFor="offset"
-          className="block text-sm font-medium leading-6 text-gray-200"
-        >
-          {`Offset`}
-        </label>
-        <TextInput
-          type="number"
-          value={offset}
-          onChange={(e) => {
-            setOffset(parseInt(e.currentTarget.value, 10));
-          }}
-          suffixEl={<span className="text-gray-300">{`seconds`}</span>}
-        />
+        <div className="mb-2 flex flex-col">
+          <label
+            htmlFor="offset"
+            className="block text-sm font-medium leading-6 text-gray-200"
+          >
+            {`Offset`}
+          </label>
+          <TextInput
+            type="number"
+            value={offset}
+            onChange={(e) => {
+              setOffset(parseInt(e.currentTarget.value, 10));
+            }}
+            suffixEl={<span className="text-gray-300">{`seconds`}</span>}
+          />
+        </div>
 
         {props.vod && (
-          <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg bg-gray-950/25 p-2">
+          <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg border border-gray-950/25 bg-gray-950/25 p-2 shadow-inner">
             {mockedMarkers.map((marker, index) => {
               return (
                 <li key={marker.id}>
