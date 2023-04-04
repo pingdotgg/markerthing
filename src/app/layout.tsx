@@ -45,7 +45,7 @@ export default async function RootLayout({
           style={{ backgroundImage: `url(/background.svg)` }}
         >
           <div className="flex h-screen w-full grow flex-col">
-            <div className="flex w-full items-center justify-between px-8 pt-4">
+            <div className="flex h-16 w-full items-center justify-between px-8 pt-4">
               <LogoMark />
 
               <div className="flex gap-2">
@@ -54,17 +54,19 @@ export default async function RootLayout({
                     Go to your VODs
                   </ButtonLink>
                 </SignedIn>
-                <UserButton
-                  afterSignOutUrl="/"
-                  appearance={{
-                    layout: {
-                      logoPlacement: "none",
-                    },
-                    elements: {
-                      userButtonAvatarBox: "h-12 w-12",
-                    },
-                  }}
-                />
+                <div className="h-12 w-12">
+                  <UserButton
+                    afterSignOutUrl="/"
+                    appearance={{
+                      layout: {
+                        logoPlacement: "none",
+                      },
+                      elements: {
+                        userButtonAvatarBox: "h-12 w-12",
+                      },
+                    }}
+                  />
+                </div>
               </div>
             </div>
             {children}
