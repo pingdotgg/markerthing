@@ -1,9 +1,8 @@
-import { remark } from "remark";
-import html from "remark-html";
 import { Card } from "../(components)/common/card";
 
-// I tried to read this from FS but it was harder than expected in a "worker" 😅
-const md = `
+<Card>
+<article className="prose p-8">
+
 ## Chop Your Streams In Record Time
 
 Grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/s/article/creating-highlights-and-stream-markers?language=en_US#:~:text=in%20light%20purple.-,Stream%20Markers,-Stream%20Markers%20are) to use with [LosslessCut](https://github.com/mifi/lossless-cut)
@@ -26,19 +25,6 @@ The CSV files exported are designed to be used with [LosslessCut](https://github
 This workflow takes me ~3 minutes, and it enables my team to quickly grab 5+ videos worth of content after every stream.
 
 Let me know if this is useful! - [Theo](https://twitter.com/t3dotgg)
-`;
 
-export default async function About() {
-  const processedContent = await remark().use(html).process(md);
-
-  return (
-    <div className="my-auto flex flex-col items-center justify-center">
-      <Card>
-        <article
-          className="prose p-8"
-          dangerouslySetInnerHTML={{ __html: processedContent.toString() }}
-        />
-      </Card>
-    </div>
-  );
-}
+</article>
+</Card>
