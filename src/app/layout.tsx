@@ -56,20 +56,20 @@ export default async function RootLayout({
                   <ButtonLink href={`/${user?.username}`}>
                     Go to your VODs
                   </ButtonLink>
+                  <div className="h-12 w-12">
+                    <UserButton
+                      afterSignOutUrl="/"
+                      appearance={{
+                        layout: {
+                          logoPlacement: "none",
+                        },
+                        elements: {
+                          userButtonAvatarBox: "h-12 w-12",
+                        },
+                      }}
+                    />
+                  </div>
                 </SignedIn>
-                <div className="h-12 w-12">
-                  <UserButton
-                    afterSignOutUrl="/"
-                    appearance={{
-                      layout: {
-                        logoPlacement: "none",
-                      },
-                      elements: {
-                        userButtonAvatarBox: "h-12 w-12",
-                      },
-                    }}
-                  />
-                </div>
               </div>
             </div>
             {children}
