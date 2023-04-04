@@ -52,9 +52,7 @@ const VodEmptyState = () => {
       <h3 className="mt-6 text-lg font-medium text-gray-400">
         {"It's awfully quiet here..."}
       </h3>
-      <p className="mt-1 text-sm ">
-        Stream on Twitch to have your VODs appear here.
-      </p>
+      <p className="mt-1 text-sm ">No VODs found for this channel.</p>
     </div>
   );
 };
@@ -76,7 +74,7 @@ export const VODs = async (props: { self: User; username: string }) => {
   const data = (response as TwitchVodRequest).data;
 
   return (
-    <div className="flex h-full w-full flex-wrap items-center justify-center gap-4 p-4">
+    <div className="flex flex-1 flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
       {data.length === 0 && <VodEmptyState />}
       {data.map((vod) => (
         <Link key={vod.id} href={`/v/${vod.id}`}>
