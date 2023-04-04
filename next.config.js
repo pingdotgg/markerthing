@@ -2,7 +2,7 @@
 const nextConfig = {
   experimental: {
     appDir: true,
-    runtime: "experimental-edge",
+    runtime: "edge",
     mdxRs: true,
   },
   images: {
