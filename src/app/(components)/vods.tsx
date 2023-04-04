@@ -48,11 +48,13 @@ interface VodResponse {
 
 const VodEmptyState = () => {
   return (
-    <div className="flex flex-col items-center justify-center p-2 text-gray-500">
+    <div className="flex flex-1 flex-col items-center justify-center p-2 text-gray-500">
       <h3 className="mt-6 text-lg font-medium text-gray-400">
         {"It's awfully quiet here..."}
       </h3>
-      <p className="mt-1 text-sm ">No VODs found for this channel.</p>
+      <p className="mt-1 text-sm ">
+        Stream on Twitch to have your VODs appear here.
+      </p>
     </div>
   );
 };
@@ -74,37 +76,34 @@ export const VODs = async (props: { self: User; username: string }) => {
   const data = (response as TwitchVodRequest).data;
 
   return (
-    <div className="flex flex-1 flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
-      {data.length === 0 ? (
-        <VodEmptyState />
-      ) : (
-        data.map((vod) => (
-          <Link key={vod.id} href={`/v/${vod.id}`}>
-            <div
-              key={vod.id}
-              className="group relative flex w-96 flex-col overflow-hidden rounded-lg border border-gray-950 bg-black shadow-md"
-            >
-              <Image
-                src={vod.thumbnail_url
-                  .replace("%{width}", "1280")
-                  .replace("%{height}", "720")}
-                width={1280}
-                height={720}
-                alt={"thumbnail"}
-                className="w-96 group-hover:opacity-50"
-              />
-              <div className="absolute left-0 top-0 p-2">
-                <div className="rounded-lg bg-gray-900/70 px-2 py-1 font-semibold text-white">
-                  {dayjs(vod.created_at).format("MM/DD/YYYY")}
-                </div>
-              </div>
-              <div className="absolute bottom-0 w-full bg-gray-900/80 px-3 py-2 text-lg font-semibold">
-                <span className="line-clamp-1">{vod.title}</span>
+    <div className="flex h-full w-full flex-wrap items-center justify-center gap-4 p-4">
+      {data.length === 0 && <VodEmptyState />}
+      {data.map((vod) => (
+        <Link key={vod.id} href={`/v/${vod.id}`}>
+          <div
+            key={vod.id}
+            className="group relative flex w-96 flex-col overflow-hidden rounded-lg bg-black"
+          >
+            <Image
+              src={vod.thumbnail_url
+                .replace("%{width}", "1280")
+                .replace("%{height}", "720")}
+              width={1280}
+              height={720}
+              alt={"thumbnail"}
+              className="w-96 group-hover:opacity-50"
+            />
+            <div className="absolute left-0 top-0 p-2">
+              <div className="rounded-lg bg-gray-900/70 px-2 py-1 font-semibold text-white">
+                {dayjs(vod.created_at).format("MM/DD/YYYY")}
               </div>
             </div>
-          </Link>
-        ))
-      )}
+            <div className="absolute bottom-0 w-full bg-gray-900/80 px-3 py-2 text-lg font-semibold">
+              <span className="line-clamp-1">{vod.title}</span>
+            </div>
+          </div>
+        </Link>
+      ))}
     </div>
   );
 };

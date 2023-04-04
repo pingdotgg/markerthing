@@ -12,7 +12,7 @@ export default async function Home({ params }: { params: { slug: string } }) {
   const self = await currentUser();
   if (!self) throw new Error("you shouldn't be here");
   return (
-    <div className="flex min-h-0 flex-1">
+    <div className="flex h-screen w-full grow flex-col items-center justify-center">
       <Suspense fallback={<LoadingPage />}>
         {/* @ts-expect-error Server Component */}
         <VODs self={self} username={params.slug} />
