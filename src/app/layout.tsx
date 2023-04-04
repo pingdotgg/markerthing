@@ -14,14 +14,14 @@ import React from "react";
 import {
   ClerkProvider,
   SignedIn,
+  SignedOut,
   UserButton,
   currentUser,
 } from "@clerk/nextjs/app-beta";
 import { dark } from "@clerk/themes";
-
-import Background from "../assets/background.svg";
-import { LogoMark } from "./(components)/logomark";
 import PlausibleProvider from "next-plausible";
+
+import { LogoMark } from "./(components)/logomark";
 import { ButtonLink } from "./(components)/common/button";
 
 export default async function RootLayout({
@@ -49,6 +49,9 @@ export default async function RootLayout({
               <LogoMark />
 
               <div className="flex gap-2">
+                <SignedOut>
+                  <ButtonLink href="/sign-in">Sign In</ButtonLink>
+                </SignedOut>
                 <SignedIn>
                   <ButtonLink href={`/${user?.username}`}>
                     Go to your VODs
