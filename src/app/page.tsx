@@ -1,5 +1,4 @@
-import { currentUser } from "@clerk/nextjs/app-beta";
-import { ButtonLink } from "./(components)/common/button";
+import About from "./(components)/about";
 
 export const dynamic = "force-dynamic";
 // I do the revalidate 0 here because "force-dynamic" doesn't actually work
@@ -7,14 +6,10 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home() {
-  const self = await currentUser();
-  if (!self) throw new Error("you shouldn't be here");
   return (
     <div className="my-auto flex flex-col items-center justify-center">
-      {`You're logged in!`}
-      <ButtonLink href={`/${self.username}`} className="mt-4">
-        Click here to view your VODs
-      </ButtonLink>
+      {/* @ts-expect-error Server Component */}
+      <About />
     </div>
   );
 }

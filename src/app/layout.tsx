@@ -11,18 +11,25 @@ export const metadata = {
 };
 
 import React from "react";
-import { ClerkProvider, UserButton } from "@clerk/nextjs/app-beta";
+import {
+  ClerkProvider,
+  SignedIn,
+  UserButton,
+  currentUser,
+} from "@clerk/nextjs/app-beta";
 import { dark } from "@clerk/themes";
 
 import Background from "../assets/background.svg";
 import { LogoMark } from "./(components)/logomark";
 import PlausibleProvider from "next-plausible";
+import { ButtonLink } from "./(components)/common/button";
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
+  const user = await currentUser();
   return (
     <html lang="en">
       <head>
@@ -41,17 +48,24 @@ export default function RootLayout({
             <div className="flex w-full items-center justify-between px-8 pt-4">
               <LogoMark />
 
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  layout: {
-                    logoPlacement: "none",
-                  },
-                  elements: {
-                    userButtonAvatarBox: "h-12 w-12",
-                  },
-                }}
-              />
+              <div className="flex gap-2">
+                <SignedIn>
+                  <ButtonLink href={`/${user?.username}`}>
+                    Go to your VODs
+                  </ButtonLink>
+                </SignedIn>
+                <UserButton
+                  afterSignOutUrl="/"
+                  appearance={{
+                    layout: {
+                      logoPlacement: "none",
+                    },
+                    elements: {
+                      userButtonAvatarBox: "h-12 w-12",
+                    },
+                  }}
+                />
+              </div>
             </div>
             {children}
             <div className="flex justify-between px-8 py-4">
