@@ -11,6 +11,7 @@
   "dependencies": {
     "@clerk/nextjs": "^4.14.1-staging.0",
     "@clerk/themes": "^1.5.1",
+    "@next/mdx": "^13.2.4",
     "@types/node": "18.15.11",
     "@types/react": "18.0.31",
     "@types/react-dom": "18.0.11",
@@ -23,14 +24,12 @@
     "postcss": "8.4.21",
     "react": "18.2.0",
     "react-dom": "18.2.0",
-    "remark": "^14.0.2",
-    "remark-html": "^15.0.2",
     "tailwindcss": "3.3.1",
     "typescript": "5.0.3"
   },
   "devDependencies": {
-    "@tailwindcss/line-clamp": "^0.4.4",
     "@tailwindcss/typography": "^0.5.9",
+    "@types/mdx": "^2.0.4",
     "prettier": "^2.8.7",
     "prettier-plugin-tailwindcss": "^0.2.6"
   }
