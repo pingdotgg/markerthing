@@ -1,18 +1,20 @@
 import { remark } from "remark";
 import html from "remark-html";
+import { Card } from "../(components)/common/card";
 
 // I tried to read this from FS but it was harder than expected in a "worker" 😅
 const md = `
-## Tl;dr 
+## Chop Your Streams In Record Time
+
 Grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/s/article/creating-highlights-and-stream-markers?language=en_US#:~:text=in%20light%20purple.-,Stream%20Markers,-Stream%20Markers%20are) to use with [LosslessCut](https://github.com/mifi/lossless-cut)
 
-## More Info
+### ...why does this exist?
 
 [Theo](https://twitter.com/t3dotgg) wanted a better way to manage the markers from his streams. He uses them as reference points to grab chunks of video for his editors. This app lets you see all the markers trivially as well as exporting them to a CSV file.
 
 The CSV files exported are designed to be used with [LosslessCut](https://github.com/mifi/lossless-cut), a phenomenal open source video cutting tool. We also included a time offset option to set all the times forward or backward by a chosen number of seconds.
 
-## My workflow:
+### My workflow:
 
 - Stream on Twitch, record vod + footage on camera
 - During stream, create new markers using \`/marker (name of marker)\` command
@@ -29,10 +31,12 @@ export default async function About() {
 
   return (
     <div className="my-auto flex flex-col items-center justify-center">
-      <article
-        className="prose"
-        dangerouslySetInnerHTML={{ __html: processedContent.toString() }}
-      />
+      <Card>
+        <article
+          className="prose p-8"
+          dangerouslySetInnerHTML={{ __html: processedContent.toString() }}
+        />
+      </Card>
     </div>
   );
 }
