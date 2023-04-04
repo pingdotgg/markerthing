@@ -1,4 +1,4 @@
-import About from "../(components)/about";
+import About from "./(components)/about";
 
 export default async function Home() {
   return (

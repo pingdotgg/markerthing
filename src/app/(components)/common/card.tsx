@@ -9,7 +9,7 @@ export const Card: React.FC<
   return (
     <div
       className={classNames(
-        "rounded border border-gray-750 bg-gray-850 shadow-md",
+        "rounded border border-gray-750 bg-gray-850 shadow",
         className
       )}
       {...rest}

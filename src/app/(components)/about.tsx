@@ -6,11 +6,13 @@ import { Card } from "../(components)/common/card";
 const md = `
 ## Chop Your Streams In Record Time
 
-Grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/s/article/creating-highlights-and-stream-markers?language=en_US#:~:text=in%20light%20purple.-,Stream%20Markers,-Stream%20Markers%20are) to use with [LosslessCut](https://github.com/mifi/lossless-cut), a phenomenal open source video cutting tool.
+Grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/s/article/creating-highlights-and-stream-markers?language=en_US#:~:text=in%20light%20purple.-,Stream%20Markers,-Stream%20Markers%20are) to use with [LosslessCut](https://github.com/mifi/lossless-cut)
 
 ### ...why does this exist?
 
 I wanted a better way to manage the markers from my streams. I use them as reference points to grab chunks of video for my editors. This app lets you see all the markers trivially as well as exporting them to a CSV file.
+
+The CSV files exported are designed to be used with [LosslessCut](https://github.com/mifi/lossless-cut), a phenomenal open source video cutting tool. We also included a time offset option to set all the times forward or backward by a chosen number of seconds.
 
 ### My workflow:
 
@@ -30,7 +32,7 @@ export default async function About() {
   const processedContent = await remark().use(html).process(md);
 
   return (
-    <div className="my-auto flex flex-col items-center justify-center p-2 sm:p-0">
+    <div className="my-auto flex flex-col items-center justify-center">
       <Card>
         <article
           className="prose p-8"
