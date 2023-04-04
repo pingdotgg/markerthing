@@ -10,6 +10,8 @@ export const metadata = {
   icons: "/favicon.svg",
 };
 
+export const runtime = "experimental-edge";
+
 import React from "react";
 import {
   ClerkProvider,
