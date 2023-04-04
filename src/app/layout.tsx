@@ -22,7 +22,8 @@ import { dark } from "@clerk/themes";
 import PlausibleProvider from "next-plausible";
 
 import { LogoMark } from "./(components)/logomark";
-import { ButtonLink } from "./(components)/common/button";
+import { SignInButton } from "./(components)/signin";
+import { GoToVodsButton } from "./(components)/gotovods";
 
 export default async function RootLayout({
   children,
@@ -30,6 +31,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }) {
   const user = await currentUser();
+
   return (
     <html lang="en">
       <head>
@@ -45,35 +47,33 @@ export default async function RootLayout({
           style={{ backgroundImage: `url(/background.svg)` }}
         >
           <div className="flex h-screen w-full grow flex-col">
-            <div className="flex h-16 w-full items-center justify-between px-8 pt-4">
+            <div className="flex h-16 w-full items-center justify-between px-4 py-4 sm:px-8">
               <LogoMark />
 
-              <div className="flex gap-2">
+              <div className="flex items-center gap-4">
                 <SignedOut>
-                  <ButtonLink href="/sign-in">Sign In</ButtonLink>
+                  <SignInButton />
                 </SignedOut>
                 <SignedIn>
-                  <ButtonLink href={`/${user?.username}`}>
-                    Go to your VODs
-                  </ButtonLink>
+                  <GoToVodsButton user={user?.username} />
+                  <div className="flex h-12 w-12 items-center">
+                    <UserButton
+                      afterSignOutUrl="/"
+                      appearance={{
+                        layout: {
+                          logoPlacement: "none",
+                        },
+                        elements: {
+                          userButtonAvatarBox: "h-8 w-8 sm:h-12 sm:w-12",
+                        },
+                      }}
+                    />
+                  </div>
                 </SignedIn>
-                <div className="h-12 w-12">
-                  <UserButton
-                    afterSignOutUrl="/"
-                    appearance={{
-                      layout: {
-                        logoPlacement: "none",
-                      },
-                      elements: {
-                        userButtonAvatarBox: "h-12 w-12",
-                      },
-                    }}
-                  />
-                </div>
               </div>
             </div>
             {children}
-            <div className="flex justify-between px-8 py-4">
+            <div className="flex justify-between px-4 py-4 sm:px-8">
               <span>
                 Made with &hearts; by{" "}
                 <a
