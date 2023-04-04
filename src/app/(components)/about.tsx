@@ -10,7 +10,7 @@ Grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/s/articl
 
 ### ...why does this exist?
 
-[Theo](https://twitter.com/t3dotgg) wanted a better way to manage the markers from his streams. He uses them as reference points to grab chunks of video for his editors. This app lets you see all the markers trivially as well as exporting them to a CSV file.
+I wanted a better way to manage the markers from my streams. I use them as reference points to grab chunks of video for my editors. This app lets you see all the markers trivially as well as exporting them to a CSV file.
 
 The CSV files exported are designed to be used with [LosslessCut](https://github.com/mifi/lossless-cut), a phenomenal open source video cutting tool. We also included a time offset option to set all the times forward or backward by a chosen number of seconds.
 
@@ -24,6 +24,8 @@ The CSV files exported are designed to be used with [LosslessCut](https://github
 - ^ again, with camera recordings + offset CSV
 
 This workflow takes me ~3 minutes, and it enables my team to quickly grab 5+ videos worth of content after every stream.
+
+Let me know if this is useful! - [Theo](https://twitter.com/t3dotgg)
 `;
 
 export default async function About() {
