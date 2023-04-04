@@ -20,6 +20,7 @@ export const LayoutHelper = async ({
   const user = await currentUser();
   return (
     <>
+      {/* Header */}
       <div className="flex h-16 w-full items-center justify-between px-4 py-4 sm:px-8">
         <LogoMark />
 
@@ -47,7 +48,11 @@ export const LayoutHelper = async ({
           </SignedIn>
         </div>
       </div>
+
+      {/* Content */}
       {children}
+
+      {/* Footer */}
       <div className="flex justify-between px-4 py-4 sm:px-8">
         <span>
           Made with &hearts; by{" "}

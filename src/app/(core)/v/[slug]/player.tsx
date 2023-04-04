@@ -101,11 +101,12 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
   return (
     <div className="grid min-h-0 flex-1 grid-rows-3 items-start gap-4 overflow-y-hidden p-4 sm:grid-cols-3 sm:grid-rows-1 sm:gap-8 sm:p-8">
       {/* Video Player */}
-      <div className="row-span-1 flex w-full flex-col sm:col-span-2">
-        <div id="vod-player" className="aspect-video w-full" />
+      <div className="row-span-1 flex w-full flex-col overflow-hidden rounded-lg border border-gray-950 shadow-md sm:col-span-2">
+        <div id="vod-player" className="aspect-video w-full !rounded-lg" />
       </div>
       {/* Timestamps */}
-      <div className="row-span-2 flex h-full min-h-0 flex-col gap-2 sm:col-span-1 sm:row-span-1">
+
+      <Card className="row-span-2 flex h-full min-h-0 flex-col gap-2 p-4 shadow-md sm:col-span-1 sm:row-span-1">
         <div className="flex items-center justify-between">
           <h1 className="flex items-center gap-1.5 text-lg font-semibold ">
             <span>Timestamps</span>
@@ -124,22 +125,20 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           </ButtonLink>
         </div>
 
-        <Card className="p-2">
-          <label
-            htmlFor="offset"
-            className="block text-sm font-medium leading-6 text-gray-200"
-          >
-            {`Offset`}
-          </label>
-          <TextInput
-            type="number"
-            value={offset}
-            onChange={(e) => {
-              setOffset(parseInt(e.currentTarget.value, 10));
-            }}
-            suffixEl={<span className="text-gray-300">{`seconds`}</span>}
-          />
-        </Card>
+        <label
+          htmlFor="offset"
+          className="block text-sm font-medium leading-6 text-gray-200"
+        >
+          {`Offset`}
+        </label>
+        <TextInput
+          type="number"
+          value={offset}
+          onChange={(e) => {
+            setOffset(parseInt(e.currentTarget.value, 10));
+          }}
+          suffixEl={<span className="text-gray-300">{`seconds`}</span>}
+        />
 
         {props.vod && (
           <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg bg-gray-950/25 p-2">
@@ -168,7 +167,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
             })}
           </ul>
         )}
-      </div>
+      </Card>
     </div>
   );
 };
