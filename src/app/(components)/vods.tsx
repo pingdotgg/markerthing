@@ -89,39 +89,33 @@ export const VODs = async (props: { username: string }) => {
   const twitchUserId = await getTwitchUserId(props.username, creds);
 
   // fetch vods from twitch api
-  const response = await fetch(
-    `https://api.twitch.tv/helix/videos?user_id=${twitchUserId}`,
-    {
+
+  const [
+    { data: vodData }, 
+    { data: streamData }
+  ]: [TwitchVodRequest, TwitchStreamRequest] = await Promise.all([
+    fetch(`https://api.twitch.tv/helix/videos?user_id=${twitchUserId}`, {
       method: "GET",
       headers: generateTwitchRequestHeaders(creds),
       redirect: "follow",
-    }
-  ).then((response) => response.json());
+    }).then((response) => response.json()),
 
-  const streams = await fetch(
-    `https://api.twitch.tv/helix/streams?user_id=${twitchUserId}&type=live`,
-    {
+    fetch(`https://api.twitch.tv/helix/streams?user_id=${twitchUserId}&type=live`, {
       method: "GET",
       headers: generateTwitchRequestHeaders(creds),
       redirect: "follow",
-    }
-  ).then((response) => response.json());
+    }).then((response) => response.json())
+  ]);
 
-  const streamMap = new Map<string, boolean>();
-  (streams as TwitchStreamRequest).data.forEach((stream) => {
-    streamMap.set(stream.id, true);
-  });
-
-  const data = (response as TwitchVodRequest).data.filter((vod) => {
-    return !streamMap.has(vod.stream_id);
-  });
+  const streamMap = new Map<string, boolean>(streamData.map((stream) => [stream.id, true]));
+  const filteredVodData = vodData.filter(({ stream_id }) => !streamMap.has(stream_id));
 
   return (
     <div className="flex flex-1 flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
-      {data.length === 0 ? (
+      {filteredVodData.length === 0 ? (
         <VodEmptyState />
       ) : (
-        data.map((vod) => (
+        filteredVodData.map((vod) => (
           <Link key={vod.id} href={`/v/${vod.id}`}>
             <div
               key={vod.id}
