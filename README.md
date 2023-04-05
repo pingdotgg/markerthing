@@ -18,3 +18,16 @@ The CSV files exported are designed to be used with [LosslessCut](https://github
 - ^ again, with camera recordings + offset CSV
 
 This workflow takes me ~3 minutes, and it enables my team to quickly grab 5+ videos worth of content after every stream.
+
+## Dev Setup:
+
+- First you will need a project setup in clerk. 
+  - Create a new project and grab your public + secret keys from the API Keys page.
+  - Copy them.
+  - Save them in a .env.local file.
+- Next you will need a twitch application (https://dev.twitch.tv/docs/authentication/)
+  - Paste them in to your .env.local under `TWITCH_CLIENT_SECRET` + `TWITCH_CLIENT_ID`
+- Install the node modules (make sure you are on node 16+)
+  (if you need to work with multiple versions of node then I highly recommend nvm!)
+- Start up the app with `npm run dev`
+- And presto. Should have running next app!
