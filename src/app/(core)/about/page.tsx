@@ -1,3 +1,9 @@
-import About from "~/app/(components)/about";
+import About from "../(components)/about.mdx";
 
-export default About;
+export default async function Home() {
+  return (
+    <div className="my-auto flex flex-col items-center justify-center">
+      <About />
+    </div>
+  );
+}
