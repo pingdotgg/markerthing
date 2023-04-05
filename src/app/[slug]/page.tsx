@@ -9,13 +9,11 @@ export const dynamic = "force-dynamic";
 export const revalidate = 0;
 
 export default async function Home({ params }: { params: { slug: string } }) {
-  const self = await currentUser();
-  if (!self) throw new Error("you shouldn't be here");
   return (
     <div className="flex min-h-0 flex-1">
       <Suspense fallback={<LoadingPage />}>
         {/* @ts-expect-error Server Component */}
-        <VODs self={self} username={params.slug} />
+        <VODs username={params.slug} />
       </Suspense>
     </div>
   );

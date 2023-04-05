@@ -1,4 +1,4 @@
-import { currentUser } from "@clerk/nextjs/app-beta";
+import { auth } from "@clerk/nextjs/app-beta";
 import {
   getTwitchTokenFromClerk,
   getVodWithMarkers,
@@ -17,10 +17,10 @@ export default async function VodPage({
 }: {
   params: { slug: string };
 }) {
-  const self = await currentUser();
-  if (!self) return <div>You have to be signed in</div>;
+  const self = await auth();
+  if (!self || !self.userId) return <div>You have to be signed in</div>;
 
-  const token = await getTwitchTokenFromClerk(self.id);
+  const token = await getTwitchTokenFromClerk(self.userId);
 
   const vodDetails = await getVodWithMarkers(params.slug, token);
 

@@ -1,4 +1,4 @@
-import { clerkClient, currentUser } from "@clerk/nextjs/app-beta";
+import { clerkClient } from "@clerk/nextjs/app-beta";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
   const headers = new Headers();
