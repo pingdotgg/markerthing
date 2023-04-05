@@ -10,7 +10,7 @@ export const revalidate = 0;
 
 export default async function Home({ params }: { params: { slug: string } }) {
   return (
-    <div className="flex flex-1 grow mx-auto items-center">
+    <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto">
       <Suspense fallback={<LoadingPage />}>
         {/* @ts-expect-error Server Component */}
         <VODs username={params.slug} />

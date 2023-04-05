@@ -77,7 +77,7 @@ export const VODs = async (props: { username: string }) => {
   const data = (response as TwitchVodRequest).data;
 
   return (
-    <div className="my-auto flex max-w-7xl flex-wrap content-center items-center justify-center gap-4 overflow-y-auto p-4">
+    <div className="my-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
       {data.length === 0 ? (
         <VodEmptyState />
       ) : (
