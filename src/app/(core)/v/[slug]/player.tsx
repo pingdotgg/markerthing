@@ -86,14 +86,18 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     ...props.vod.markers,
   ];
 
-  const [offset, setOffset] = useState(0);
+  const [offset, setOffset] = useState<{minutes: number | string; seconds: number | string; totalSeconds: number}>({
+    minutes: 0,
+    seconds: 0,
+    totalSeconds: 0,
+  });
 
   const csv = mockedMarkers.map((marker, id) => {
     const endTime =
       (mockedMarkers[id + 1]?.position_seconds ??
-        (videoDuration as duration.Duration)?.asSeconds?.()) - offset;
+        (videoDuration as duration.Duration)?.asSeconds?.()) - offset.totalSeconds;
 
-    const startTime = Math.max(marker.position_seconds - offset, 0);
+    const startTime = Math.max(marker.position_seconds - offset.totalSeconds, 0);
 
     return `${startTime},${endTime},${marker.description.replace(",", "")}`;
   });
@@ -132,14 +136,30 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           >
             {`Offset`}
           </label>
-          <TextInput
+        <div className="flex gap-2">
+        <TextInput
             type="number"
-            value={offset}
+            value={offset.seconds}
             onChange={(e) => {
-              setOffset(parseInt(e.currentTarget.value, 10));
+              setOffset(prev => {
+                const value: number = parseInt(e.target?.value, 10);
+                return {...prev, minutes: !value && value !== 0 ? "" : value, totalSeconds: (typeof value === 'number' ? value * 60 : 0) + (typeof prev.seconds === 'number' ? prev.seconds : 0)}
+              });
             }}
             suffixEl={<span className="text-gray-300">{`seconds`}</span>}
           />
+                  <TextInput
+            type="number"
+            value={offset.minutes}
+            onChange={(e) => {
+              setOffset(prev => {
+                const value: number = parseInt(e.target?.value, 10);
+                return {...prev, seconds: !value && value !== 0 ? "" : value, totalSeconds: (typeof prev.minutes === 'number' ? prev.minutes * 60 : 0) + (!value ? 0 : value)}
+              });
+            }}
+            suffixEl={<span className="text-gray-300">{`minutes`}</span>}
+          />
+        </div>
         </div>
 
         {props.vod && (
