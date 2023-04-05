@@ -1,4 +1,4 @@
-import About from "~/app/(components)/about.mdx";
+import About from "~/(components)/about.mdx";
 
 export default async function Home() {
   return (
