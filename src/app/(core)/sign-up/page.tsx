@@ -9,8 +9,8 @@ export default function Page({
     <div className="my-auto flex items-center justify-center">
       <SignUp
         path="/sign-up"
+        routing="path"
         signInUrl="/sign-in"
-        redirectUrl={searchParams.redirect_url || "/"}
         appearance={{
           variables: {
             colorPrimary: "#E24A8D",
