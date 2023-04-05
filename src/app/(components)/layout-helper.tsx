@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import {
   SignedIn,
   SignedOut,
@@ -10,6 +10,29 @@ import { LogoMark } from "./logomark";
 import { SignInButton } from "./signin";
 import { GoToVodsButton } from "./gotovods";
 
+const TopRightNav = async ({ slug }: { slug: string | undefined }) => {
+  const user = await currentUser();
+
+  return (
+    <>
+      {user?.username !== slug && <GoToVodsButton user={user?.username} />}
+      <div className="flex h-12 w-12 items-center">
+        <UserButton
+          afterSignOutUrl="/"
+          appearance={{
+            layout: {
+              logoPlacement: "none",
+            },
+            elements: {
+              userButtonAvatarBox: "h-8 w-8 sm:h-12 sm:w-12",
+            },
+          }}
+        />
+      </div>
+    </>
+  );
+};
+
 export const LayoutHelper = async ({
   children,
   slug,
@@ -17,7 +40,6 @@ export const LayoutHelper = async ({
   children: React.ReactNode;
   slug?: string;
 }) => {
-  const user = await currentUser();
   return (
     <>
       {/* Header */}
@@ -29,22 +51,11 @@ export const LayoutHelper = async ({
             <SignInButton />
           </SignedOut>
           <SignedIn>
-            {user?.username !== slug && (
-              <GoToVodsButton user={user?.username} />
-            )}
-            <div className="flex h-12 w-12 items-center">
-              <UserButton
-                afterSignOutUrl="/"
-                appearance={{
-                  layout: {
-                    logoPlacement: "none",
-                  },
-                  elements: {
-                    userButtonAvatarBox: "h-8 w-8 sm:h-12 sm:w-12",
-                  },
-                }}
-              />
-            </div>
+            {/* TODO: Make this fallback a skeleton with a profile picture since we know that much by now */}
+            <Suspense fallback={<div />}>
+              {/* @ts-expect-error Server Component */}
+              <TopRightNav slug={slug} />
+            </Suspense>
           </SignedIn>
         </div>
       </div>
