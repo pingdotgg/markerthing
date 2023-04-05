@@ -23,7 +23,7 @@ const TopRightNav = async ({ slug }: { slug: string | undefined }) => {
     <>
       <Suspense fallback={<div />}>
         {/** @ts-expect-error Async Server Component */}
-        <AsyncVodsButton />
+        <AsyncVodsButton slug={slug} />
       </Suspense>
       <div className="flex h-12 w-12 items-center">
         <UserButton
