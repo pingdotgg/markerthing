@@ -1,4 +1,4 @@
-import { LayoutHelper } from "~/(components)/layout-helper";
+import { LayoutHelper } from "~/components/layout-helper";
 
 export default async function VODsLayout({
   children,

@@ -3,9 +3,9 @@
 import * as dayjs from "dayjs";
 import duration from "dayjs/plugin/duration";
 import { useEffect, useMemo, useState } from "react";
-import { ButtonLink } from "~/(components)/common/button";
-import { Card } from "~/(components)/common/card";
-import { TextInput } from "~/(components)/common/text-input";
+import { ButtonLink } from "~/components/common/button";
+import { Card } from "~/components/common/card";
+import { TextInput } from "~/components/common/text-input";
 import type { VOD } from "~/utils/twitch-server";
 import { Player } from "~/utils/types/twitch-player";
 dayjs.extend(duration);
