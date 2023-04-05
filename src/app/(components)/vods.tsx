@@ -1,4 +1,3 @@
-import type { User } from "@clerk/nextjs/dist/api";
 import {
   generateTwitchRequestHeaders,
   getTwitchUserId,
@@ -6,6 +5,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import dayjs from "dayjs";
+import { auth } from "@clerk/nextjs/app-beta";
 
 const getTwitchClientCredentials = async () => {
   const response = await fetch(
@@ -57,7 +57,10 @@ const VodEmptyState = () => {
   );
 };
 
-export const VODs = async (props: { self: User; username: string }) => {
+export const VODs = async (props: { username: string }) => {
+  const self = await auth();
+  if (!self) throw new Error("you shouldn't be here");
+
   const creds = await getTwitchClientCredentials();
   const twitchUserId = await getTwitchUserId(props.username, creds);
 

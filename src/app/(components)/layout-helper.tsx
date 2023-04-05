@@ -10,12 +10,21 @@ import { LogoMark } from "./logomark";
 import { SignInButton } from "./signin";
 import { GoToVodsButton } from "./gotovods";
 
-const TopRightNav = async ({ slug }: { slug: string | undefined }) => {
+const AsyncVodsButton = async ({ slug }: { slug: string | undefined }) => {
   const user = await currentUser();
 
+  if (user?.username === slug) return null;
+
+  return <GoToVodsButton user={user?.username} />;
+};
+
+const TopRightNav = async ({ slug }: { slug: string | undefined }) => {
   return (
     <>
-      {user?.username !== slug && <GoToVodsButton user={user?.username} />}
+      <Suspense fallback={<div />}>
+        {/** @ts-expect-error Async Server Component */}
+        <AsyncVodsButton slug={slug} />
+      </Suspense>
       <div className="flex h-12 w-12 items-center">
         <UserButton
           afterSignOutUrl="/"
