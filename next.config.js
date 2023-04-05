@@ -2,7 +2,9 @@
 const nextConfig = {
   experimental: {
     appDir: true,
-    runtime: "experimental-edge",
+
+    // TODO: Restore this whenever app router is unfucked
+    // runtime: "experimental-edge",
   },
   images: {
     domains: ["static-cdn.jtvnw.net", "vod-secure.twitch.tv"],
