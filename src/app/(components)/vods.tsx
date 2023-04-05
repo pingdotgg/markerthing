@@ -33,6 +33,7 @@ interface VodResponse {
   user_id: string;
   user_login: string;
   user_name: string;
+  stream_id: string;
   game_id: string;
   game_name: string;
   type: string;
@@ -44,6 +45,29 @@ interface VodResponse {
   tag_ids: string[];
   is_mature: boolean;
   created_at: string;
+}
+
+interface TwitchStreamRequest {
+  data: StreamResponse[];
+  pagination: Pagination;
+}
+
+interface StreamResponse {
+  id: string;
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  game_id: string;
+  game_name: string;
+  type: string;
+  title: string;
+  tags: string[];
+  viewer_count: number;
+  startedAt: string;
+  language: string;
+  thumbnail_url: string;
+  tag_ids: string[];
+  is_mature: boolean;
 }
 
 const VodEmptyState = () => {
@@ -74,7 +98,23 @@ export const VODs = async (props: { username: string }) => {
     }
   ).then((response) => response.json());
 
-  const data = (response as TwitchVodRequest).data;
+  const streams = await fetch(
+    `https://api.twitch.tv/helix/streams?user_id=${twitchUserId}&type=live`,
+    {
+      method: "GET",
+      headers: generateTwitchRequestHeaders(creds),
+      redirect: "follow",
+    }
+  ).then((response) => response.json());
+
+  const streamMap = new Map<string, boolean>();
+  (streams as TwitchStreamRequest).data.forEach((stream) => {
+    streamMap.set(stream.id, true);
+  });
+
+  const data = (response as TwitchVodRequest).data.filter((vod) => {
+    return !streamMap.has(vod.stream_id);
+  });
 
   return (
     <div className="flex flex-1 flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
