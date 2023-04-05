@@ -19,6 +19,22 @@ const getTwitchClientCredentials = async () => {
   return response.access_token as string;
 };
 
+function sendTwitchAPIRequest(path: string, title: string, creds: string) {
+  return fetch(`https://api.twitch.tv${path}`, {
+    method: "GET",
+    headers: generateTwitchRequestHeaders(creds),
+    redirect: "follow",
+  }).then((response) => {
+    if (response.ok) {
+      return response.json();
+    } else {
+      return response.json().then((json) => {
+        throw new Error(`${title} Request Failed: ${json.status}: ${json.error}${json.message ? ` -- ${json.message}` : ''}`);
+      })
+    }
+  });
+}
+
 interface Pagination {
   cursor: string;
 }
@@ -94,17 +110,8 @@ export const VODs = async (props: { username: string }) => {
     { data: vodData }, 
     { data: streamData }
   ]: [TwitchVodRequest, TwitchStreamRequest] = await Promise.all([
-    fetch(`https://api.twitch.tv/helix/videos?user_id=${twitchUserId}`, {
-      method: "GET",
-      headers: generateTwitchRequestHeaders(creds),
-      redirect: "follow",
-    }).then((response) => response.json()),
-
-    fetch(`https://api.twitch.tv/helix/streams?user_id=${twitchUserId}&type=live`, {
-      method: "GET",
-      headers: generateTwitchRequestHeaders(creds),
-      redirect: "follow",
-    }).then((response) => response.json())
+    sendTwitchAPIRequest(`/helix/videos?user_id=${twitchUserId}`, "Videos", creds),
+    sendTwitchAPIRequest(`/helix/streams?user_id=${twitchUserId}&type=live`, "Streams", creds),
   ]);
 
   const streamMap = new Map<string, boolean>(streamData.map((stream) => [stream.id, true]));
