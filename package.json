@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.14.2",
+    "@clerk/nextjs": "^4.15.0",
     "@clerk/themes": "^1.5.1",
     "@next/mdx": "^13.2.4",
     "@types/node": "18.15.11",
