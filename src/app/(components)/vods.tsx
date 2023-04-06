@@ -118,7 +118,7 @@ export const VODs = async (props: { username: string }) => {
   const filteredVodData = vodData.filter(({ stream_id }) => !streamMap.has(stream_id));
 
   return (
-    <div className="flex flex-1 flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
+    <div className="my-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
       {filteredVodData.length === 0 ? (
         <VodEmptyState />
       ) : (
