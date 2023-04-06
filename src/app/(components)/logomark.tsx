@@ -25,8 +25,8 @@ export const LogoMark = () => {
   }, []);
 
   return (
-    <div className="inline-flex items-baseline justify-start text-2xl font-bold sm:text-4xl ">
-      <Link href="/" className="flex flex-row items-baseline justify-start">
+    <h1 className="flex flex-row items-baseline text-2xl font-bold sm:text-4xl ">
+      <Link href="/" className="flex flex-row items-baseline">
         <Icon size={isSmall ? 24 : 32} className="-mr-2 mb-2 h-6 sm:h-8" />
         <span className="tracking-tight hover:cursor-pointer">
           {`marker`}
@@ -37,6 +37,6 @@ export const LogoMark = () => {
         {`...by `}
         <a href="https://ping.gg" className="hover:text-pink-500">{`Ping`}</a>
       </span>
-    </div>
+    </h1>
   );
 };
