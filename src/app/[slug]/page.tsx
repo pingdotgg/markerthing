@@ -1,4 +1,3 @@
-import { currentUser } from "@clerk/nextjs/app-beta";
 import { Suspense } from "react";
 import { LoadingPage } from "~/components/loading";
 import { VODs } from "../(components)/vods";

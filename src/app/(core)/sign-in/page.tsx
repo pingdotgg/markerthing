@@ -1,10 +1,8 @@
 import { SignIn } from "@clerk/nextjs/app-beta";
 
-export default function Page({
-  searchParams,
-}: {
-  searchParams: { [key: string]: string | undefined };
-}) {
+export const runtime = "nodejs";
+
+export default function Page() {
   return (
     <div className="my-auto flex items-center justify-center">
       <SignIn
