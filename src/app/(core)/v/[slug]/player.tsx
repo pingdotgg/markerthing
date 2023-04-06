@@ -86,12 +86,10 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     ...props.vod.markers,
   ];
 
-  const [offset, setOffset] = useState<{minutes: number | string; seconds: number | string; totalSeconds: number}>({
-    minutes: 0,
-    seconds: 0,
-    totalSeconds: 0,
+  const [offset, setOffset] = useState<{presentational: string, totalSeconds: number}>({
+    presentational: '0',
+    totalSeconds: 0
   });
-
   const csv = mockedMarkers.map((marker, id) => {
     const endTime =
       (mockedMarkers[id + 1]?.position_seconds ??
@@ -102,7 +100,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     return `${startTime},${endTime},${marker.description.replace(",", "")}`;
   });
 
-  function parseOffsetValues(value: string): number | undefined {
+  function parseOffsetValue(value: string): number | undefined {
     // if there are no colons, assume its seconds
     if(/^\d+$/.test(value)) return parseInt(value, 0);
   
@@ -151,11 +149,18 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           </label>
           <TextInput
           type="text"
-          value={offset}
-          onChange={(e) => setOffset(Number(e.currentTarget.value))}
+          value={offset.presentational}
+          onChange={(e) => {
+            setOffset(prev => {
+              return {
+                ...prev,
+                presentational: e.target.value,
+              }
+            });
+          }}
           onBlur={(e) => {
-            const parsedValue = parseOffsetValues(String(e.currentTarget.value));
-            setOffset(parsedValue ? parsedValue : 0);
+            const parsedValue = parseOffsetValue(e.target.value);
+            setOffset(prev => ({...prev, totalSeconds: parsedValue ? parsedValue : 0}));
           }}
           suffixEl={<span className="text-gray-300">{`seconds`}</span>}
         />
