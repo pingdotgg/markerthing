@@ -102,6 +102,19 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     return `${startTime},${endTime},${marker.description.replace(",", "")}`;
   });
 
+  function parseOffsetValues(value: string): number | undefined {
+    // if there are no colons, assume its seconds
+    if(/^\d+$/.test(value)) return parseInt(value, 0);
+  
+    // Supports HH:MM:SS, MM:SS, SS
+    // If it's not in the format, return undefined
+    if (!/^([0-5]?[0-9]:){0,2}[0-5][0-9]$/.test(value)) return undefined;
+  
+    return value
+      .split(":")
+      .reduce((acc, cur) => (acc = acc * 60 + parseInt(cur, 0)), 0);
+  }
+
   return (
     <div className="grid min-h-0 flex-1 grid-rows-3 items-start gap-4 overflow-y-hidden p-4 sm:grid-cols-3 sm:grid-rows-1 sm:gap-8 sm:p-8">
       {/* Video Player */}
@@ -136,30 +149,17 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           >
             {`Offset`}
           </label>
-        <div className="flex gap-2">
-        <TextInput
-            type="number"
-            value={offset.seconds}
-            onChange={(e) => {
-              setOffset(prev => {
-                const value: number = parseInt(e.target?.value, 10);
-                return {...prev, minutes: !value && value !== 0 ? "" : value, totalSeconds: (typeof value === 'number' ? value * 60 : 0) + (typeof prev.seconds === 'number' ? prev.seconds : 0)}
-              });
-            }}
-            suffixEl={<span className="text-gray-300">{`seconds`}</span>}
-          />
-                  <TextInput
-            type="number"
-            value={offset.minutes}
-            onChange={(e) => {
-              setOffset(prev => {
-                const value: number = parseInt(e.target?.value, 10);
-                return {...prev, seconds: !value && value !== 0 ? "" : value, totalSeconds: (typeof prev.minutes === 'number' ? prev.minutes * 60 : 0) + (!value ? 0 : value)}
-              });
-            }}
-            suffixEl={<span className="text-gray-300">{`minutes`}</span>}
-          />
-        </div>
+          <TextInput
+          type="text"
+          value={offset}
+          onChange={(e) => setOffset(Number(e.currentTarget.value))}
+          onBlur={(e) => {
+            const parsedValue = parseOffsetValues(String(e.currentTarget.value));
+            setOffset(parsedValue ? parsedValue : 0);
+          }}
+          suffixEl={<span className="text-gray-300">{`seconds`}</span>}
+        />
+        <p className="text-xs mt-1 text-gray-300">Accepts HH:MM:SS, MM:SS or SS</p>
         </div>
 
         {props.vod && (
