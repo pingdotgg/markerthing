@@ -107,12 +107,26 @@ export const VODs = async (props: { username: string }) => {
   // fetch vods from twitch api
 
   const [
-    { data: vodData }, 
-    { data: streamData }
-  ]: [TwitchVodRequest, TwitchStreamRequest] = await Promise.all([
+    vodResult,
+    streamResult
+  ]: [
+    PromiseSettledResult<TwitchVodRequest>,
+    PromiseSettledResult<TwitchStreamRequest>
+  ] = await Promise.allSettled([
     sendTwitchAPIRequest(`/helix/videos?user_id=${twitchUserId}`, "Videos", creds),
     sendTwitchAPIRequest(`/helix/streams?user_id=${twitchUserId}&type=live`, "Streams", creds),
   ]);
+
+  if (vodResult.status === "rejected") {
+    throw new Error(vodResult.reason.message);
+  }
+
+  if (streamResult.status === "rejected") {
+    throw new Error(streamResult.reason.message);
+  }
+
+  const vodData = vodResult.value.data;
+  const streamData = streamResult.value.data;
 
   const streamMap = new Map<string, boolean>(streamData.map((stream) => [stream.id, true]));
   const filteredVodData = vodData.filter(({ stream_id }) => !streamMap.has(stream_id));
