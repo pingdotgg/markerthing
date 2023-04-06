@@ -102,7 +102,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
 
   function parseOffsetValue(value: string): number | undefined {
     // if there are no colons, assume its seconds
-    if(/^\d+$/.test(value)) return parseInt(value, 0);
+    if(/^\d+$/.test(value)) return parseInt(value, 10);
   
     // Supports HH:MM:SS, MM:SS, SS
     // If it's not in the format, return undefined
