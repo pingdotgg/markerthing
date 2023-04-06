@@ -4,7 +4,7 @@ const nextConfig = {
     appDir: true,
 
     // TODO: Restore this whenever app router is unfucked
-    // runtime: "experimental-edge",
+    runtime: "experimental-edge",
     mdxRs: true,
   },
   images: {
