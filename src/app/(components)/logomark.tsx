@@ -1,5 +1,7 @@
+"use client";
 import Link from "next/link";
 import Icon from "./icon";
+import { useEffect, useState } from "react";
 
 export const LogoMark = () => {
   return (
