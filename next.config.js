@@ -16,7 +16,6 @@ const nextConfig = {
   eslint: {
     ignoreDuringBuilds: true,
   },
-  swcMinify: true,
 };
 
 const withMdx = require("@next/mdx")()(nextConfig);
