@@ -110,7 +110,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
   
     return value
       .split(":")
-      .reduce((acc, cur) => (acc = acc * 60 + parseInt(cur, 0)), 0);
+      .reduce((acc, cur) => (acc = acc * 60 + parseInt(cur, 10)), 0);
   }
 
   return (
@@ -150,19 +150,11 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           <TextInput
           type="text"
           value={offset.presentational}
-          onChange={(e) => {
-            setOffset(prev => {
-              return {
-                ...prev,
-                presentational: e.target.value,
-              }
-            });
-          }}
+          onChange={(e) => setOffset(prev => ({...prev, presentational: e.target.value}))}
           onBlur={(e) => {
             const parsedValue = parseOffsetValue(e.target.value);
-            setOffset(prev => ({...prev, totalSeconds: parsedValue ? parsedValue : 0}));
+            setOffset(prev => ({...prev, totalSeconds: parsedValue ?? 0}));
           }}
-          suffixEl={<span className="text-gray-300">{`seconds`}</span>}
         />
         <p className="text-xs mt-1 text-gray-300">Accepts HH:MM:SS, MM:SS or SS</p>
         </div>
