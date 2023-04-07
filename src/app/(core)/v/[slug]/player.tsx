@@ -132,7 +132,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
             )}`}
             {...{
               download: `${props.vod?.created_at} VOD MARKERS${
-                offset ? ` - ${offset}s` : ""
+                offset.totalSeconds ? ` - ${offset.totalSeconds}s` : ""
               }`,
             }}
           >
