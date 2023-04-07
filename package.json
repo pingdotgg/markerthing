@@ -10,7 +10,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/nextjs": "^4.14.2",
+    "@clerk/nextjs": "^4.15.0",
     "@clerk/themes": "^1.5.1",
     "@next/mdx": "^13.2.4",
     "@types/node": "18.15.11",
@@ -20,7 +20,7 @@
     "dayjs": "^1.11.7",
     "eslint": "8.37.0",
     "eslint-config-next": "13.2.4",
-    "next": "^13.2.4",
+    "next": "^13.3.1-canary.0",
     "next-plausible": "^3.7.2",
     "postcss": "8.4.21",
     "react": "18.2.0",

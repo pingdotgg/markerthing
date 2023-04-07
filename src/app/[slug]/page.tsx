@@ -1,7 +1,7 @@
 import { currentUser } from "@clerk/nextjs/app-beta";
 import { Suspense } from "react";
 import { LoadingPage } from "~/components/loading";
-import { VODs } from "../(components)/vods";
+import { VODs } from "../_components/vods";
 
 export const dynamic = "force-dynamic";
 // I do the revalidate 0 here because "force-dynamic" doesn't actually work

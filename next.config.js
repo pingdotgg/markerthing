@@ -3,7 +3,6 @@ const nextConfig = {
   experimental: {
     appDir: true,
 
-    // TODO: Restore this whenever app router is unfucked
     runtime: "experimental-edge",
     mdxRs: true,
   },
