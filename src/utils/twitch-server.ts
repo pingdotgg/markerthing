@@ -15,8 +15,7 @@ export const getTwitchUserId = async (userName: string, token: string) => {
     {
       method: "GET",
       headers: generateTwitchRequestHeaders(token),
-      redirect: "follow",
-      cache: "no-store",
+      next: { revalidate: Infinity }, // These should never change
     }
   ).then((response) => response.json());
   if (res.error === "Unauthorized") throw new Error("Unauthorized");
@@ -82,8 +81,7 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
     {
       method: "GET",
       headers: generateTwitchRequestHeaders(tokenForMarkers),
-      redirect: "follow",
-      cache: "no-store",
+      next: { revalidate: 60 },
     }
   );
 

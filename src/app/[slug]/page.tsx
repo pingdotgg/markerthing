@@ -6,7 +6,7 @@ import { VODs } from "../_components/vods";
 export const dynamic = "force-dynamic";
 // I do the revalidate 0 here because "force-dynamic" doesn't actually work
 // See: https://github.com/vercel/next.js/issues/47273
-export const revalidate = 0;
+export const revalidate = 60;
 
 export default async function Home({ params }: { params: { slug: string } }) {
   return (
