@@ -1,3 +1,4 @@
+import Link from "next/link";
 import React, { ReactElement } from "react";
 import { LoadingSpinner } from "~/components/loading";
 import { classNames } from "~/utils/classnames";
@@ -151,7 +152,7 @@ const ButtonContent: React.FC<{
  */
 export const ButtonLink = React.forwardRef<
   HTMLAnchorElement,
-  ButtonProps & HTMLAnchorProps
+  ButtonProps & HTMLAnchorProps & { href: string }
 >((props, ref) => {
   const {
     children,
@@ -162,17 +163,19 @@ export const ButtonLink = React.forwardRef<
     icon,
     iconPosition,
     loading,
+    href,
     ...rest
   } = props;
   return (
-    <a
+    <Link
       className={getButtonClasses({ disabled, size, variant }, className)}
-      ref={ref}
+      ref={ref as any}
       aria-disabled={disabled}
+      href={href}
       {...rest}
     >
       <ButtonContent {...props} />
-    </a>
+    </Link>
   );
 });
 ButtonLink.displayName = "ButtonLink";
