@@ -24,13 +24,18 @@ function sendTwitchAPIRequest(path: string, title: string, creds: string) {
     method: "GET",
     headers: generateTwitchRequestHeaders(creds),
     redirect: "follow",
+    next: { revalidate: 60 },
   }).then((response) => {
     if (response.ok) {
       return response.json();
     } else {
       return response.json().then((json) => {
-        throw new Error(`${title} Request Failed: ${json.status}: ${json.error}${json.message ? ` -- ${json.message}` : ''}`);
-      })
+        throw new Error(
+          `${title} Request Failed: ${json.status}: ${json.error}${
+            json.message ? ` -- ${json.message}` : ""
+          }`
+        );
+      });
     }
   });
 }
@@ -106,15 +111,20 @@ export const VODs = async (props: { username: string }) => {
 
   // fetch vods from twitch api
 
-  const [
-    vodResult,
-    streamResult
-  ]: [
+  const [vodResult, streamResult]: [
     PromiseSettledResult<TwitchVodRequest>,
     PromiseSettledResult<TwitchStreamRequest>
   ] = await Promise.allSettled([
-    sendTwitchAPIRequest(`/helix/videos?user_id=${twitchUserId}`, "Videos", creds),
-    sendTwitchAPIRequest(`/helix/streams?user_id=${twitchUserId}&type=live`, "Streams", creds),
+    sendTwitchAPIRequest(
+      `/helix/videos?user_id=${twitchUserId}`,
+      "Videos",
+      creds
+    ),
+    sendTwitchAPIRequest(
+      `/helix/streams?user_id=${twitchUserId}&type=live`,
+      "Streams",
+      creds
+    ),
   ]);
 
   if (vodResult.status === "rejected") {
@@ -128,8 +138,12 @@ export const VODs = async (props: { username: string }) => {
   const vodData = vodResult.value.data;
   const streamData = streamResult.value.data;
 
-  const streamMap = new Map<string, boolean>(streamData.map((stream) => [stream.id, true]));
-  const filteredVodData = vodData.filter(({ stream_id }) => !streamMap.has(stream_id));
+  const streamMap = new Map<string, boolean>(
+    streamData.map((stream) => [stream.id, true])
+  );
+  const filteredVodData = vodData.filter(
+    ({ stream_id }) => !streamMap.has(stream_id)
+  );
 
   return (
     <div className="my-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
