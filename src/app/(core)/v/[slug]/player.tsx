@@ -151,10 +151,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           type="text"
           value={offset.presentational}
           onChange={(e) => setOffset(prev => ({...prev, presentational: e.target.value}))}
-          onBlur={(e) => {
-            const parsedValue = parseOffsetValue(e.target.value);
-            setOffset(prev => ({...prev, totalSeconds: parsedValue ?? 0}));
-          }}
+          onBlur={(e) => setOffset(prev => ({...prev, totalSeconds: parseOffsetValue(e.target.value) ?? 0}))}
         />
         <p className="text-xs mt-1 text-gray-300">Accepts HH:MM:SS, MM:SS or SS</p>
         </div>
