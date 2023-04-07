@@ -19,6 +19,22 @@ const getTwitchClientCredentials = async () => {
   return response.access_token as string;
 };
 
+function sendTwitchAPIRequest(path: string, title: string, creds: string) {
+  return fetch(`https://api.twitch.tv${path}`, {
+    method: "GET",
+    headers: generateTwitchRequestHeaders(creds),
+    redirect: "follow",
+  }).then((response) => {
+    if (response.ok) {
+      return response.json();
+    } else {
+      return response.json().then((json) => {
+        throw new Error(`${title} Request Failed: ${json.status}: ${json.error}${json.message ? ` -- ${json.message}` : ''}`);
+      })
+    }
+  });
+}
+
 interface Pagination {
   cursor: string;
 }
@@ -33,6 +49,7 @@ interface VodResponse {
   user_id: string;
   user_login: string;
   user_name: string;
+  stream_id: string;
   game_id: string;
   game_name: string;
   type: string;
@@ -44,6 +61,29 @@ interface VodResponse {
   tag_ids: string[];
   is_mature: boolean;
   created_at: string;
+}
+
+interface TwitchStreamRequest {
+  data: StreamResponse[];
+  pagination: Pagination;
+}
+
+interface StreamResponse {
+  id: string;
+  user_id: string;
+  user_login: string;
+  user_name: string;
+  game_id: string;
+  game_name: string;
+  type: string;
+  title: string;
+  tags: string[];
+  viewer_count: number;
+  startedAt: string;
+  language: string;
+  thumbnail_url: string;
+  tag_ids: string[];
+  is_mature: boolean;
 }
 
 const VodEmptyState = () => {
@@ -65,23 +105,38 @@ export const VODs = async (props: { username: string }) => {
   const twitchUserId = await getTwitchUserId(props.username, creds);
 
   // fetch vods from twitch api
-  const response = await fetch(
-    `https://api.twitch.tv/helix/videos?user_id=${twitchUserId}`,
-    {
-      method: "GET",
-      headers: generateTwitchRequestHeaders(creds),
-      redirect: "follow",
-    }
-  ).then((response) => response.json());
 
-  const data = (response as TwitchVodRequest).data;
+  const [
+    vodResult,
+    streamResult
+  ]: [
+    PromiseSettledResult<TwitchVodRequest>,
+    PromiseSettledResult<TwitchStreamRequest>
+  ] = await Promise.allSettled([
+    sendTwitchAPIRequest(`/helix/videos?user_id=${twitchUserId}`, "Videos", creds),
+    sendTwitchAPIRequest(`/helix/streams?user_id=${twitchUserId}&type=live`, "Streams", creds),
+  ]);
+
+  if (vodResult.status === "rejected") {
+    throw new Error(vodResult.reason.message);
+  }
+
+  if (streamResult.status === "rejected") {
+    throw new Error(streamResult.reason.message);
+  }
+
+  const vodData = vodResult.value.data;
+  const streamData = streamResult.value.data;
+
+  const streamMap = new Map<string, boolean>(streamData.map((stream) => [stream.id, true]));
+  const filteredVodData = vodData.filter(({ stream_id }) => !streamMap.has(stream_id));
 
   return (
     <div className="my-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
-      {data.length === 0 ? (
+      {filteredVodData.length === 0 ? (
         <VodEmptyState />
       ) : (
-        data.map((vod) => (
+        filteredVodData.map((vod) => (
           <Link key={vod.id} href={`/v/${vod.id}`}>
             <div
               key={vod.id}

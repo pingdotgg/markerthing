@@ -1,0 +1,2 @@
+User-agent: *
+Sitemap: https://marker.ping.gg/sitemap.xml
