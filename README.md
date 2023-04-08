@@ -11,3 +11,11 @@ tl;dr - grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/
    b. You also need to add the `user:read:broadcast` and `openid` scopes
 4. Add the environment variables to a new `.env.local` file (see `.env.example`)
 5. `pnpm dev`
+
+## Tech used
+
+- [Next.js App Router](https://beta.nextjs.org)
+- [React Server Components](https://react.dev)
+- [Clerk auth](https://clerk.com/?utm_campaign=theo-dtc)
+- [Tailwind](https://tailwindcss.com)
+- [Plausible analytics](https://plausible.io/?ref=theo)
