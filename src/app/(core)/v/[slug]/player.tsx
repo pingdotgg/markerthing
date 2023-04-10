@@ -108,7 +108,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     return `${startTime},${endTime},${marker.description.replace(",", "")}`;
   });
 
-  const ytChapters = mockedMarkers.slice(1).reduce((acc, marker) => {
+  const ytChapters = mockedMarkers.reduce((acc, marker) => {
     const startTime = new Date(
       (marker.position_seconds - offset.totalSeconds) * 1000
     );
@@ -149,6 +149,14 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
             <span>Timestamps</span>
           </h1>
           <div className="flex items-center gap-1.5">
+            <Button
+              onClick={() => {
+                navigator.clipboard.writeText(ytChapters);
+                toast.success("Copied YouTube chapters to clipboard!");
+              }}
+            >
+              {`YT Chapters`}
+            </Button>
             <ButtonLink
               href={`data:text/csv;charset=utf-8,${encodeURIComponent(
                 csv.join("\n")
@@ -161,14 +169,6 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
             >
               {`Download CSV`}
             </ButtonLink>
-            <Button
-              onClick={() => {
-                navigator.clipboard.writeText(ytChapters);
-                toast.success("Copied YouTube chapters to clipboard!");
-              }}
-            >
-              {`YT Chapters`}
-            </Button>
           </div>
         </div>
         <div className="mb-2 flex flex-col">
