@@ -13,20 +13,10 @@ dayjs.extend(duration);
 // Converts "8h32m12s" format into dayjs duration
 // I absolutely hate this function and would love ANYTHING better
 const getDurationFromTwitchFormat = (input: string) => {
-  let preppedInput = input;
-  if (!preppedInput.includes("m")) preppedInput = `0m${preppedInput}`;
-  if (!preppedInput.includes("h")) preppedInput = `0h${preppedInput}`;
+  const timeComponents = input.split(/(\d+)/).filter(Boolean);
+  const [hours = 0, minutes = 0, seconds = 0] = timeComponents.map(parseFloat);
 
-  console.log("INPUT", preppedInput);
-  const [hs, hst] = preppedInput.split("h");
-  const [ms, mst] = hst!.split("m");
-  const [ss] = mst!.split("s");
-
-  const h = +(hs ?? "0");
-  const m = +(ms ?? "0");
-  const s = +(ss ?? "0");
-
-  return dayjs.duration({ hours: h, minutes: m, seconds: s });
+  return dayjs.duration({ hours, minutes, seconds });
 };
 
 const initializePlayer = (
