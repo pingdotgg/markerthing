@@ -6,6 +6,7 @@ import Link from "next/link";
 import Image from "next/image";
 import dayjs from "dayjs";
 import { auth } from "@clerk/nextjs/app-beta";
+import { ButtonLink } from "./common/button";
 
 const getTwitchClientCredentials = async () => {
   const response = await fetch(
@@ -93,11 +94,12 @@ interface StreamResponse {
 
 const VodEmptyState = () => {
   return (
-    <div className="flex flex-col items-center justify-center p-2 text-gray-500">
-      <h3 className="mt-6 text-lg font-medium text-gray-400">
+    <div className="flex flex-col items-center justify-center gap-2 p-2 text-gray-500">
+      <h3 className="text-lg font-medium text-gray-400">
         {"It's awfully quiet here..."}
       </h3>
-      <p className="mt-1 text-sm ">No VODs found for this channel.</p>
+      <p className="text-sm ">No VODs found for this channel.</p>
+      <ButtonLink href="/theo">{`Check out Theo's VODs`}</ButtonLink>
     </div>
   );
 };
