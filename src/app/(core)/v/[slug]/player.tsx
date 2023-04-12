@@ -144,7 +144,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
 
       {/* Timestamps */}
       <Card className="row-span-2 flex h-full min-h-0 flex-col gap-2 p-4 shadow-md sm:col-span-1 sm:row-span-1">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-wrap items-center justify-between gap-1.5 ">
           <h1 className="flex items-center gap-1.5 text-lg font-semibold ">
             <span>Timestamps</span>
           </h1>
