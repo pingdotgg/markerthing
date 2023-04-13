@@ -157,7 +157,8 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
             >
               {`YT Chapters`}
             </Button>
-            <ButtonLink
+            <a
+              className="relative inline-flex items-center rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-750 hover:text-gray-100"
               href={`data:text/csv;charset=utf-8,${encodeURIComponent(
                 csv.join("\n")
               )}`}
@@ -168,7 +169,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
               }}
             >
               {`Download CSV`}
-            </ButtonLink>
+            </a>
           </div>
         </div>
         <div className="mb-2 flex flex-col">
