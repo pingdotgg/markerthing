@@ -30,7 +30,7 @@ export default async function RootLayout({
         }}
       >
         <body
-          className="bg-landing"
+          className="bg-landing overscroll-none"
           style={{ backgroundImage: `url(/background.svg)` }}
         >
           <div className="flex h-screen w-full grow flex-col">{children}</div>
