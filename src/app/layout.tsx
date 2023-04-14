@@ -2,6 +2,7 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"] });
+export const runtime = "edge";
 
 export const metadata = {
   title: "MarkerThing",
@@ -30,7 +31,7 @@ export default async function RootLayout({
         }}
       >
         <body
-          className="bg-landing overscroll-none"
+          className="overscroll-none bg-landing"
           style={{ backgroundImage: `url(/background.svg)` }}
         >
           <div className="flex h-screen w-full grow flex-col">{children}</div>
