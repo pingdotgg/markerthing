@@ -69,6 +69,9 @@ const initializePlayer = (
   };
 };
 
+// Number of seconds to pad on each side of exported CSV
+const EXPORT_BUFFER = 10;
+
 export const VodPlayer = (props: { id: string; vod: VOD }) => {
   const [player, setPlayer] = useState<Player | null>(null);
 
@@ -95,13 +98,17 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     totalSeconds: 0,
   });
   const csv = mockedMarkers.map((marker, id) => {
-    const endTime =
+    let endTime =
       (mockedMarkers[id + 1]?.position_seconds ??
         (videoDuration as duration.Duration)?.asSeconds?.()) -
       offset.totalSeconds;
 
+    endTime += EXPORT_BUFFER;
+
+    if (endTime < 0) endTime = 1;
+
     const startTime = Math.max(
-      marker.position_seconds - offset.totalSeconds,
+      marker.position_seconds - offset.totalSeconds - EXPORT_BUFFER,
       0
     );
 
