@@ -1,3 +1,4 @@
+import { metadata } from "./../app/layout";
 import { clerkClient } from "@clerk/nextjs/app-beta";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
@@ -55,6 +56,36 @@ const getValidTokenForCreator = async (creatorName: string) => {
   return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
 };
 
+const fetchPaginatedMarkers = async (
+  url: string,
+  init?: RequestInit | undefined
+): Promise<any[]> => {
+  type ApiRes = {
+    data: any[];
+    pagination: { cursor: string };
+  };
+
+  let {
+    data,
+    pagination: { cursor },
+  } = (await fetch(url, init).then((response) => response.json())) as ApiRes;
+
+  const extractMarkers = (result: ApiRes) =>
+    result.data?.[0]?.videos?.[0]?.markers ?? [];
+
+  let markers = extractMarkers({ data, pagination: { cursor } });
+
+  while (cursor) {
+    const next = (await fetch(`${url}&after=${cursor}`, init).then((response) =>
+      response.json()
+    )) as ApiRes;
+    markers = [...markers, ...extractMarkers(next)];
+    cursor = next.pagination.cursor;
+  }
+
+  return markers;
+};
+
 export const getVodWithMarkers = async (vodId: string, token: string) => {
   const vodResponse = await fetch(
     `https://api.twitch.tv/helix/videos?id=${vodId}`,
@@ -76,8 +107,8 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
 
   const tokenForMarkers = await getValidTokenForCreator(creatorName);
 
-  const markersResponse = await fetch(
-    `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100`,
+  const markersData = await fetchPaginatedMarkers(
+    `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}`,
     {
       method: "GET",
       headers: generateTwitchRequestHeaders(tokenForMarkers),
@@ -85,14 +116,9 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
     }
   );
 
-  console.log("MARKER RESPONSE", markersResponse.status);
+  console.log("MARKERS", markersData);
 
-  const markersData = await markersResponse.json();
-  console.log("MARKER DATA", markersData);
-
-  const markers = markersData?.data?.[0]?.videos?.[0]["markers"] ?? [];
-
-  return { ...vodData?.data?.[0], markers } as VOD;
+  return { ...vodData?.data?.[0], markers: markersData } as VOD;
 };
 
 export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
