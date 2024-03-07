@@ -49,7 +49,9 @@ const getValidTokenForCreator = async (creatorName: string) => {
 
   // Early escape if we don't find this user in Clerk
   if (!creatorFoundInClerk) {
-    throw new Error("User not found in Clerk");
+    throw new Error(
+      "User has not signed in before. Markers are not available for this VOD."
+    );
   }
 
   return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
@@ -72,7 +74,7 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
 
   const creatorName = vodData?.data?.[0]?.user_login;
 
-  if (!creatorName) throw new Error("could not find vod data or user login");
+  if (!creatorName) throw new Error("Could not find VOD data or user name.");
 
   const tokenForMarkers = await getValidTokenForCreator(creatorName);
 
