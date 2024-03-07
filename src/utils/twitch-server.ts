@@ -108,7 +108,7 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
   const tokenForMarkers = await getValidTokenForCreator(creatorName);
 
   const markersData = await fetchPaginatedMarkers(
-    `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}`,
+    `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100`,
     {
       method: "GET",
       headers: generateTwitchRequestHeaders(tokenForMarkers),
