@@ -1,4 +1,3 @@
-import { metadata } from "./../app/layout";
 import { clerkClient } from "@clerk/nextjs/app-beta";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
