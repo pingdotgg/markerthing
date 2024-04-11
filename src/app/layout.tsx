@@ -34,7 +34,7 @@ export default async function RootLayout({
           className="overscroll-none bg-landing"
           style={{ backgroundImage: `url(/background.svg)` }}
         >
-          <div className="flex h-screen w-full grow flex-col">{children}</div>
+          <div className="flex h-screen w-full grow flex-col">{JSON.stringify(process)}{children}</div>
         </body>
       </ClerkProvider>
     </html>
