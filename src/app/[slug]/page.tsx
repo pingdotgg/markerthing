@@ -1,8 +1,8 @@
-import { currentUser } from "@clerk/nextjs/app-beta";
 import { Suspense } from "react";
 import { LoadingPage } from "~/components/loading";
 import { VODs } from "../_components/vods";
 
+export const runtime = "edge";
 export const dynamic = "force-dynamic";
 // I do the revalidate 0 here because "force-dynamic" doesn't actually work
 // See: https://github.com/vercel/next.js/issues/47273

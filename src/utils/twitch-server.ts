@@ -1,4 +1,4 @@
-import { clerkClient } from "@clerk/nextjs/app-beta";
+import { clerkClient } from "@clerk/nextjs/server";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
   const headers = new Headers();
@@ -41,9 +41,11 @@ export type VOD = {
 // Used for vod markers
 const getValidTokenForCreator = async (creatorName: string) => {
   // Get token for the input displayName IF THEY HAVE SIGNED IN BEFORE
-  const [creatorFoundInClerk] = await clerkClient.users.getUserList({
+  const response = await clerkClient.users.getUserList({
     username: [creatorName],
   });
+
+  const creatorFoundInClerk = response.data[0];
 
   console.log("found in clerk?", creatorFoundInClerk);
 
@@ -97,10 +99,11 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
 
 export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
   if (!clerkUserId) throw new Error("unauthorized");
-  const [{ token }] = await clerkClient.users.getUserOauthAccessToken(
+  const response = await clerkClient.users.getUserOauthAccessToken(
     clerkUserId,
     "oauth_twitch"
   );
+  const token = response.data[0].token;
 
   return token;
 };

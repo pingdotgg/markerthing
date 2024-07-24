@@ -12,7 +12,7 @@ export const metadata = {
 };
 
 import React from "react";
-import { ClerkProvider } from "@clerk/nextjs/app-beta";
+import { ClerkProvider } from "@clerk/nextjs";
 import { dark } from "@clerk/themes";
 import PlausibleProvider from "next-plausible";
 export default async function RootLayout({

@@ -5,7 +5,7 @@ import {
 import Link from "next/link";
 import Image from "next/image";
 import dayjs from "dayjs";
-import { auth } from "@clerk/nextjs/app-beta";
+import { auth } from "@clerk/nextjs/server";
 import { ButtonLink } from "./common/button";
 
 const getTwitchClientCredentials = async () => {

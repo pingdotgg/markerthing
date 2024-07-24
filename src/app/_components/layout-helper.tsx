@@ -1,10 +1,7 @@
 import React, { Suspense } from "react";
-import {
-  SignedIn,
-  SignedOut,
-  UserButton,
-  currentUser,
-} from "@clerk/nextjs/app-beta";
+import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+
+import { currentUser } from "@clerk/nextjs/server";
 
 import { LogoMark } from "./logomark";
 import { SignInButton } from "./signin";
