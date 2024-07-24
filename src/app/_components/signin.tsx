@@ -1,6 +1,6 @@
 "use client";
 
-import { useClerk } from "@clerk/nextjs/app-beta/client";
+import { useClerk } from "@clerk/nextjs";
 
 import Button from "./common/button";
 
