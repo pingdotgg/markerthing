@@ -51,7 +51,9 @@ const getValidTokenForCreator = async (creatorName: string) => {
 
   // Early escape if we don't find this user in Clerk
   if (!creatorFoundInClerk) {
-    throw new Error("User not found in Clerk");
+    throw new Error(
+      "User has not signed in before. Markers are not available for this VOD."
+    );
   }
 
   return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
@@ -74,25 +76,39 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
 
   const creatorName = vodData?.data?.[0]?.user_login;
 
-  if (!creatorName) throw new Error("could not find vod data or user login");
+  if (!creatorName) throw new Error("Could not find VOD data or user name.");
 
   const tokenForMarkers = await getValidTokenForCreator(creatorName);
 
-  const markersResponse = await fetch(
+  const opts = {
+    method: "GET",
+    headers: generateTwitchRequestHeaders(tokenForMarkers),
+    next: { revalidate: 60 },
+  };
+
+  let {
+    data,
+    pagination: { cursor },
+  } = await fetch(
     `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100`,
-    {
-      method: "GET",
-      headers: generateTwitchRequestHeaders(tokenForMarkers),
-      next: { revalidate: 60 },
-    }
-  );
+    opts
+  ).then((response) => response.json());
 
-  console.log("MARKER RESPONSE", markersResponse.status);
+  const extractMarkers = (result: { data: any }) =>
+    result.data?.[0]?.videos?.[0]?.markers ?? [];
 
-  const markersData = await markersResponse.json();
-  console.log("MARKER DATA", markersData);
+  let markers = extractMarkers({ data });
 
-  const markers = markersData?.data?.[0]?.videos?.[0]["markers"] ?? [];
+  while (cursor) {
+    const next = await fetch(
+      `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100&after=${cursor}`,
+      opts
+    ).then((response) => response.json());
+    markers = [...markers, ...extractMarkers(next)];
+    cursor = next.pagination.cursor;
+  }
+
+  console.log("MARKERS", markers);
 
   return { ...vodData?.data?.[0], markers } as VOD;
 };
