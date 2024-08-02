@@ -1,4 +1,4 @@
-# [MarkerThing](https://marker.ping.gg) (by [Ping](https://ping.gg))
+# [MarkerThing](https://markerthing.com) (by [Ping](https://ping.gg))
 
 tl;dr - grab csv files from your Twitch [Stream Markers](https://help.twitch.tv/s/article/creating-highlights-and-stream-markers?language=en_US#:~:text=in%20light%20purple.-,Stream%20Markers,-Stream%20Markers%20are) to use with [LosslessCut](https://github.com/mifi/lossless-cut)
 

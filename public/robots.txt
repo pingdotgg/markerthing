@@ -1,2 +1,2 @@
 User-agent: *
-Sitemap: https://marker.ping.gg/sitemap.xml
+Sitemap: https://markerthing.com/sitemap.xml
