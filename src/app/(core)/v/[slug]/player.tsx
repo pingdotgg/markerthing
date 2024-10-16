@@ -97,7 +97,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     presentational: "0",
     totalSeconds: 0,
   });
-  const csv = mockedMarkers.map((marker, id) => {
+  const csv = mockedMarkers.flatMap((marker, id) => {
     let endTime =
       (mockedMarkers[id + 1]?.position_seconds ??
         (videoDuration as duration.Duration)?.asSeconds?.()) -
@@ -112,7 +112,9 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
       0
     );
 
-    return `${startTime},${endTime},${marker.description.replace(",", "")}`;
+    if (marker.description.toLowerCase().startsWith("end of")) return [];
+
+    return [`${startTime},${endTime},${marker.description.replace(",", "")}`];
   });
 
   const ytChapters = mockedMarkers.reduce((acc, marker) => {
