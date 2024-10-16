@@ -11,6 +11,127 @@ import type { VOD } from "~/utils/twitch-server";
 import { Player } from "~/utils/types/twitch-player";
 dayjs.extend(duration);
 
+function parseOffsetValue(value: string): number | undefined {
+  // if there are no colons, assume its seconds
+  if (/^\d+$/.test(value)) return parseInt(value, 10);
+
+  // Supports HH:MM:SS, MM:SS, SS
+  // If it's not in the format, return undefined
+  if (!/^([0-5]?[0-9]:){0,2}[0-5][0-9]$/.test(value)) return undefined;
+
+  return value
+    .split(":")
+    .reduce((acc, cur) => (acc = acc * 60 + parseInt(cur, 10)), 0);
+}
+
+// Example marker labels
+// "Talking about Chrome" - no metadata, just label
+// "START: Talking about Chrome" - start marker, same as above
+// "END: Talking about Chrome" - end marker, tagged accordingly so it can be filtered out
+// "End of Talking about Chrome" - end marker, same as above
+// "OFFSET 00:40:31" - offset marker
+
+const START_LABELS = ["START:", "START OF", "START"];
+const END_LABELS = ["END:", "END OF", "END"];
+const OFFSET_LABELS = ["OFFSET", "OFFSET:"];
+const LABELS = [...START_LABELS, ...END_LABELS, ...OFFSET_LABELS];
+
+function parseMetadataFromMarker(marker: string) {
+  for (const tl of START_LABELS) {
+    if (marker.toLowerCase().startsWith(tl.toLowerCase())) {
+      return {
+        type: "start",
+        label: marker.slice(tl.length).trim(),
+      };
+    }
+  }
+
+  for (const tl of END_LABELS) {
+    if (marker.toLowerCase().startsWith(tl.toLowerCase())) {
+      return {
+        type: "end",
+        label: marker.slice(tl.length).trim(),
+      };
+    }
+  }
+
+  for (const tl of OFFSET_LABELS) {
+    if (marker.toLowerCase().startsWith(tl.toLowerCase())) {
+      return {
+        type: "offset",
+        label: marker.slice(tl.length).trim(),
+      };
+    }
+  }
+
+  return {
+    type: "start",
+    label: marker,
+  };
+}
+
+function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
+  const videoDuration = getDurationFromTwitchFormat(
+    (props.vod as any)?.duration ?? "0h0m0s"
+  );
+
+  const mockedMarkers = [
+    { position_seconds: 0, id: "start", description: "Intro" },
+    ...props.vod.markers,
+  ];
+
+  const OFFSET = props.offset?.totalSeconds ?? 0;
+
+  const taggedMarkers = mockedMarkers.map((marker, id) => {
+    let endTime =
+      (mockedMarkers[id + 1]?.position_seconds ??
+        (videoDuration as duration.Duration)?.asSeconds?.()) - OFFSET;
+
+    endTime += EXPORT_BUFFER;
+
+    if (endTime < 0) endTime = 1;
+
+    const startTime = Math.max(
+      marker.position_seconds - OFFSET - EXPORT_BUFFER,
+      0
+    );
+
+    const duration = dayjs
+      .duration(endTime * 1000 - startTime * 1000)
+      .format("HH:mm:ss");
+
+    const taggedDescription = parseMetadataFromMarker(marker.description);
+
+    return {
+      startTime,
+      endTime,
+      duration,
+      ...taggedDescription,
+    };
+  });
+
+  const filteredMarkers = taggedMarkers.filter((m) => m.type === "start");
+
+  const ytChapters = filteredMarkers.reduce((acc, marker) => {
+    const startTime = new Date(marker.startTime * 1000);
+    const timeStr = startTime.toISOString().substr(11, 8);
+    return `${acc}${marker.label} - ${timeStr}\n`;
+  }, "");
+
+  const csv = filteredMarkers
+    .map((marker) => {
+      return `${marker.startTime},${marker.endTime},${marker.label}`;
+    })
+    .join("\n");
+
+  return {
+    taggedMarkers,
+    filteredMarkers,
+    ytChapters,
+    csv,
+  };
+}
+
 // Converts "8h32m12s" format into dayjs duration
 // I absolutely hate this function and would love ANYTHING better
 const getDurationFromTwitchFormat = (input: string) => {
@@ -81,15 +202,6 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     return cleanup;
   }, [props.id]);
 
-  const videoDuration = props.vod
-    ? getDurationFromTwitchFormat((props.vod as any)?.duration ?? "0h0m0s")
-    : "n/a";
-
-  const mockedMarkers = [
-    { position_seconds: 0, id: "start", description: "Intro" },
-    ...props.vod.markers,
-  ];
-
   const [offset, setOffset] = useState<{
     presentational: string;
     totalSeconds: number;
@@ -97,46 +209,18 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     presentational: "0",
     totalSeconds: 0,
   });
-  const csv = mockedMarkers.flatMap((marker, id) => {
-    let endTime =
-      (mockedMarkers[id + 1]?.position_seconds ??
-        (videoDuration as duration.Duration)?.asSeconds?.()) -
-      offset.totalSeconds;
 
-    endTime += EXPORT_BUFFER;
+  const parsedMarkers = useMemo(() => {
+    if (!props.vod) return;
 
-    if (endTime < 0) endTime = 1;
+    return parseMarkers({
+      vod: props.vod,
+      offset: offset,
+    });
+  }, [props, offset]);
 
-    const startTime = Math.max(
-      marker.position_seconds - offset.totalSeconds - EXPORT_BUFFER,
-      0
-    );
-
-    if (marker.description.toLowerCase().startsWith("end of")) return [];
-
-    return [`${startTime},${endTime},${marker.description.replace(",", "")}`];
-  });
-
-  const ytChapters = mockedMarkers.reduce((acc, marker) => {
-    const startTime = new Date(
-      (marker.position_seconds - offset.totalSeconds) * 1000
-    );
-    const timeStr = startTime.toISOString().substr(11, 8);
-    return `${acc}${marker.description} - ${timeStr}\n`;
-  }, "");
-
-  function parseOffsetValue(value: string): number | undefined {
-    // if there are no colons, assume its seconds
-    if (/^\d+$/.test(value)) return parseInt(value, 10);
-
-    // Supports HH:MM:SS, MM:SS, SS
-    // If it's not in the format, return undefined
-    if (!/^([0-5]?[0-9]:){0,2}[0-5][0-9]$/.test(value)) return undefined;
-
-    return value
-      .split(":")
-      .reduce((acc, cur) => (acc = acc * 60 + parseInt(cur, 10)), 0);
-  }
+  if (!parsedMarkers) return null;
+  const { taggedMarkers, filteredMarkers, ytChapters, csv } = parsedMarkers;
 
   return (
     <div className="grid min-h-0 flex-1 grid-rows-3 items-start gap-4 overflow-y-hidden p-4 sm:grid-cols-3 sm:grid-rows-1 sm:gap-8 sm:p-8">
@@ -168,9 +252,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
             </Button>
             <a
               className="relative inline-flex items-center rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-750 hover:text-gray-100"
-              href={`data:text/csv;charset=utf-8,${encodeURIComponent(
-                csv.join("\n")
-              )}`}
+              href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`}
               {...{
                 download: `${props.vod?.created_at} VOD MARKERS${
                   offset.totalSeconds ? ` - ${offset.totalSeconds}s` : ""
@@ -208,21 +290,30 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
 
         {props.vod && (
           <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg border border-gray-950/25 bg-gray-950/25 p-2 shadow-inner">
-            {mockedMarkers.map((marker, index) => {
+            {filteredMarkers.map((marker, index) => {
               return (
-                <li key={marker.id}>
+                <li key={marker.startTime}>
                   <button
                     className="w-full"
                     onClick={() => {
-                      player?.seek(marker.position_seconds);
+                      player?.seek(marker.startTime);
                     }}
                   >
                     <Card className="flex animate-fade-in-down flex-col gap-4 p-4 text-left">
-                      <div className="break-words">{marker.description}</div>
+                      <div className="flex justify-between break-words">
+                        {`${marker.label}`}
+                        <div className="font-mono pl-4 text-xs text-gray-400">
+                          {`(${marker.duration})`}
+                        </div>
+                      </div>
                       <div className="flex items-center justify-between text-gray-300">
                         <div className="text-sm">
                           {dayjs
-                            .duration(marker.position_seconds * 1000)
+                            .duration(marker.startTime * 1000)
+                            .format("HH:mm:ss")}
+                          {" - "}
+                          {dayjs
+                            .duration(marker.endTime * 1000)
                             .format("HH:mm:ss")}
                         </div>
                       </div>
