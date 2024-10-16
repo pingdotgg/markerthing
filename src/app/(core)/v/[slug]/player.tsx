@@ -59,7 +59,7 @@ function parseMetadataFromMarker(marker: string) {
     if (marker.toLowerCase().startsWith(tl.toLowerCase())) {
       return {
         type: "offset",
-        label: marker.slice(tl.length).trim(),
+        label: marker.slice(tl.length).trim().replaceAll("-", ":"),
       };
     }
   }
@@ -110,7 +110,9 @@ function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
     };
   });
 
-  const filteredMarkers = taggedMarkers.filter((m) => m.type === "start");
+  const filteredMarkers = taggedMarkers.filter(
+    (m) => m.type === "start" || m.type === "offset"
+  );
 
   const ytChapters = filteredMarkers.reduce((acc, marker) => {
     const startTime = new Date(marker.startTime * 1000);
@@ -296,25 +298,50 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
                   <button
                     className="w-full"
                     onClick={() => {
-                      player?.seek(marker.startTime);
+                      if (marker.type === "start") {
+                        player?.seek(marker.startTime);
+                      }
+
+                      if (marker.type === "offset") {
+                        const offset = parseOffsetValue(marker.label);
+                        if (offset) {
+                          setOffset({
+                            presentational: marker.label,
+                            totalSeconds: offset,
+                          });
+                        }
+                      }
                     }}
                   >
                     <Card className="flex animate-fade-in-down flex-col gap-4 p-4 text-left">
                       <div className="flex justify-between break-words">
                         {`${marker.label}`}
-                        <div className="font-mono pl-4 text-xs text-gray-400">
-                          {`(${marker.duration})`}
+                        <div className="flex flex-col gap-0.5">
+                          <div className="font-mono text-right text-xs text-gray-400">
+                            {`${dayjs
+                              .duration(marker.startTime * 1000)
+                              .format("HH:mm:ss")} - ${dayjs
+                              .duration(marker.endTime * 1000)
+                              .format("HH:mm:ss")}`}
+                          </div>
+                          <div className="font-mono text-right text-xs text-gray-400">
+                            {`(${marker.duration})`}
+                          </div>
                         </div>
                       </div>
                       <div className="flex items-center justify-between text-gray-300">
-                        <div className="text-sm">
-                          {dayjs
-                            .duration(marker.startTime * 1000)
-                            .format("HH:mm:ss")}
-                          {" - "}
-                          {dayjs
-                            .duration(marker.endTime * 1000)
-                            .format("HH:mm:ss")}
+                        <div
+                          className={`-m-2 rounded-full px-2 py-1 text-sm font-bold ${
+                            marker.type === "start"
+                              ? "bg-green-800 text-white"
+                              : marker.type === "end"
+                              ? "bg-red-800 text-white"
+                              : marker.type === "offset"
+                              ? "bg-blue-800 text-white"
+                              : "bg-gray-800 text-white"
+                          }`}
+                        >
+                          {marker.type}
                         </div>
                       </div>
                     </Card>
