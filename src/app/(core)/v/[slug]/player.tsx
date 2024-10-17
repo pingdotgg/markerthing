@@ -118,7 +118,7 @@ function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
     const timeStr = dayjs
       .duration(marker.startTime * 1000)
       .format("HH:mm:ss");
-    return `${acc}${marker.label} - ${timeStr}\n`;
+    return `${acc}${timeStr} ${marker.label}\n`;
   }, "");
 
   const csv = filteredMarkers
