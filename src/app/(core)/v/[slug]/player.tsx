@@ -115,8 +115,9 @@ function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
   );
 
   const ytChapters = filteredMarkers.reduce((acc, marker) => {
-    const startTime = new Date(marker.startTime * 1000);
-    const timeStr = startTime.toISOString().substr(11, 8);
+    const timeStr = dayjs
+      .duration(marker.startTime * 1000)
+      .format("HH:mm:ss");
     return `${acc}${marker.label} - ${timeStr}\n`;
   }, "");
 
