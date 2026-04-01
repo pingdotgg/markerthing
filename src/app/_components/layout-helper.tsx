@@ -19,7 +19,6 @@ const TopRightNav = async ({ slug }: { slug: string | undefined }) => {
   return (
     <>
       <Suspense fallback={<div />}>
-        {/** @ts-expect-error Async Server Component */}
         <AsyncVodsButton slug={slug} />
       </Suspense>
       <div className="flex h-12 w-12 items-center">
@@ -59,7 +58,6 @@ export const LayoutHelper = async ({
           <SignedIn>
             {/* TODO: Make this fallback a skeleton with a profile picture since we know that much by now */}
             <Suspense fallback={<div />}>
-              {/* @ts-expect-error Server Component */}
               <TopRightNav slug={slug} />
             </Suspense>
           </SignedIn>

@@ -29,12 +29,14 @@ function parseOffsetValue(value: string): number | undefined {
 // "START: Talking about Chrome" - start marker, same as above
 // "END: Talking about Chrome" - end marker, tagged accordingly so it can be filtered out
 // "End of Talking about Chrome" - end marker, same as above
+// "CLIP: Talking about Chrome" - fixed-length clip that ends at this marker
 // "OFFSET 00:40:31" - offset marker
 
 const START_LABELS = ["START:", "START OF", "START"];
 const END_LABELS = ["END:", "END OF", "END"];
+const CLIP_LABELS = ["CLIP:", "CLIP"];
 const OFFSET_LABELS = ["OFFSET", "OFFSET:"];
-const LABELS = [...START_LABELS, ...END_LABELS, ...OFFSET_LABELS];
+const LABELS = [...START_LABELS, ...END_LABELS, ...CLIP_LABELS, ...OFFSET_LABELS];
 
 function parseMetadataFromMarker(marker: string) {
   for (const tl of START_LABELS) {
@@ -50,6 +52,15 @@ function parseMetadataFromMarker(marker: string) {
     if (marker.toLowerCase().startsWith(tl.toLowerCase())) {
       return {
         type: "end",
+        label: marker.slice(tl.length).trim(),
+      };
+    }
+  }
+
+  for (const tl of CLIP_LABELS) {
+    if (marker.toLowerCase().startsWith(tl.toLowerCase())) {
+      return {
+        type: "clip",
         label: marker.slice(tl.length).trim(),
       };
     }
@@ -83,40 +94,53 @@ function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
   const OFFSET = props.offset?.totalSeconds ?? 0;
 
   const taggedMarkers = mockedMarkers.map((marker, id) => {
-    let endTime =
-      (mockedMarkers[id + 1]?.position_seconds ??
-        (videoDuration as duration.Duration)?.asSeconds?.()) - OFFSET;
+    const taggedDescription = parseMetadataFromMarker(marker.description);
+    const markerPosition = marker.position_seconds - OFFSET;
+    const nextBoundary = mockedMarkers
+      .slice(id + 1)
+      .find(
+        (nextMarker) =>
+          parseMetadataFromMarker(nextMarker.description).type !== "clip"
+      );
 
-    endTime += EXPORT_BUFFER;
+    let startTime =
+      taggedDescription.type === "clip"
+        ? Math.max(markerPosition - CLIP_LOOKBACK_SECONDS, 0)
+        : Math.max(markerPosition - EXPORT_BUFFER, 0);
+
+    let endTime =
+      taggedDescription.type === "clip"
+        ? markerPosition
+        : (nextBoundary?.position_seconds ??
+            (videoDuration as duration.Duration)?.asSeconds?.()) - OFFSET +
+          EXPORT_BUFFER;
+
+    const highlightTime =
+      taggedDescription.type === "clip" ? markerPosition : startTime;
 
     if (endTime < 0) endTime = 1;
-
-    const startTime = Math.max(
-      marker.position_seconds - OFFSET - EXPORT_BUFFER,
-      0
-    );
+    if (endTime < startTime) startTime = endTime;
 
     const duration = dayjs
       .duration(endTime * 1000 - startTime * 1000)
       .format("HH:mm:ss");
 
-    const taggedDescription = parseMetadataFromMarker(marker.description);
-
     return {
       startTime,
       endTime,
+      highlightTime,
       duration,
       ...taggedDescription,
     };
   });
 
   const filteredMarkers = taggedMarkers.filter(
-    (m) => m.type === "start" || m.type === "offset"
+    (m) => m.type === "start" || m.type === "clip" || m.type === "offset"
   );
 
   const ytChapters = filteredMarkers.reduce((acc, marker) => {
     const timeStr = dayjs
-      .duration(marker.startTime * 1000)
+      .duration(marker.highlightTime * 1000)
       .format("HH:mm:ss");
     return `${acc}${timeStr} ${marker.label}\n`;
   }, "");
@@ -195,6 +219,7 @@ const initializePlayer = (
 
 // Number of seconds to pad on each side of exported CSV
 const EXPORT_BUFFER = 10;
+const CLIP_LOOKBACK_SECONDS = 15 * 60;
 
 export const VodPlayer = (props: { id: string; vod: VOD }) => {
   const [player, setPlayer] = useState<Player | null>(null);
@@ -299,8 +324,8 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
                   <button
                     className="w-full"
                     onClick={() => {
-                      if (marker.type === "start") {
-                        player?.seek(marker.startTime);
+                      if (marker.type === "start" || marker.type === "clip") {
+                        player?.seek(marker.highlightTime);
                       }
 
                       if (marker.type === "offset") {
@@ -337,6 +362,8 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
                               ? "bg-green-800 text-white"
                               : marker.type === "end"
                               ? "bg-red-800 text-white"
+                              : marker.type === "clip"
+                              ? "bg-amber-700 text-white"
                               : marker.type === "offset"
                               ? "bg-blue-800 text-white"
                               : "bg-gray-800 text-white"
