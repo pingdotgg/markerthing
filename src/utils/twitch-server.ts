@@ -121,6 +121,17 @@ type TwitchMarkersResponse = {
   pagination?: { cursor?: string };
 };
 
+// Uncached Twitch GET. Throws on errors, so a failed request is not read as
+// "offline" or "no markers".
+const fetchTwitchLive = async <T>(path: string, token: string) => {
+  const res = await fetch(`https://api.twitch.tv/helix${path}`, {
+    headers: generateTwitchRequestHeaders(token),
+    cache: "no-store",
+  });
+  if (!res.ok) throw new Error(`Twitch ${path} failed: ${res.status}`);
+  return (await res.json()) as T;
+};
+
 // Gets the current topic for a live creator, from the latest marker on the
 // live stream. Returns null when the creator is not live.
 export const getLiveTopic = async (
@@ -130,48 +141,52 @@ export const getLiveTopic = async (
   const userId = await getTwitchUserId(creatorName, token);
   if (!userId) return null;
 
-  const streamRes = await fetch(
-    `https://api.twitch.tv/helix/streams?user_id=${userId}`,
-    { headers: generateTwitchRequestHeaders(token), cache: "no-store" }
-  ).then((res) => res.json() as Promise<{ data?: { started_at: string }[] }>);
-
-  const stream = streamRes.data?.[0];
+  const streamRes = await fetchTwitchLive<{ data: { started_at: string }[] }>(
+    `/streams?user_id=${userId}`,
+    token
+  );
+  const stream = streamRes.data[0];
   if (!stream) return null;
 
-  // Markers come oldest first, max 100 per page, so walk to the last page
+  // Markers come oldest first, max 100 per page, so walk to the last page.
+  // The page cap is only a guard against a bad cursor loop.
   const markers: VOD["markers"] = [];
   let cursor: string | undefined;
   for (let page = 0; page < 10; page++) {
-    const res = (await fetch(
-      `https://api.twitch.tv/helix/streams/markers?user_id=${userId}&first=100${
+    const res = await fetchTwitchLive<TwitchMarkersResponse>(
+      `/streams/markers?user_id=${userId}&first=100${
         cursor ? `&after=${cursor}` : ""
       }`,
-      { headers: generateTwitchRequestHeaders(token), cache: "no-store" }
-    ).then((res) => res.json())) as TwitchMarkersResponse;
+      token
+    );
 
-    markers.push(...(res.data?.[0]?.videos?.[0]?.markers ?? []));
+    markers.push(
+      ...(res.data?.[0]?.videos?.flatMap((video) => video.markers ?? []) ?? [])
+    );
     cursor = res.pagination?.cursor;
     if (!cursor) break;
   }
 
   const streamStart = Date.parse(stream.started_at);
 
-  // Offset markers are not topics, so skip them. Also skip markers from an
-  // older stream, in case Twitch has not made a VOD for this one yet.
+  // The current topic is the last marker placed on this stream. Offset
+  // markers are not topics. Markers from before the stream started are from
+  // an older VOD, in case Twitch has not made one for this stream yet.
   const topics = markers
     .filter((marker) => Date.parse(marker.created_at) >= streamStart)
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
     .map((marker) => {
       const { rewindSeconds, description } = parseRewind(marker.description);
       return {
         ...parseMetadataFromMarker(description),
+        // A "-2" rewind only moves the timer start, not which topic is current
         startedAt: Math.max(
           Date.parse(marker.created_at) - rewindSeconds * 1000,
           streamStart
         ),
       };
     })
-    .filter((topic): topic is LiveTopic => topic.type !== "offset")
-    .sort((a, b) => a.startedAt - b.startedAt);
+    .filter((topic): topic is LiveTopic => topic.type !== "offset");
 
   // Same "Intro" fallback as the VOD page
   return (

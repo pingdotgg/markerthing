@@ -11,10 +11,12 @@ export const CopyButton = (props: { text: string }) => (
       }}
     />
     <Button
-      onClick={() => {
-        navigator.clipboard.writeText(props.text);
-        toast.success("Copied embed URL!");
-      }}
+      onClick={() =>
+        navigator.clipboard.writeText(props.text).then(
+          () => toast.success("Copied embed URL!"),
+          () => toast.error("Could not copy. Copy the URL by hand.")
+        )
+      }
     >
       Copy
     </Button>
