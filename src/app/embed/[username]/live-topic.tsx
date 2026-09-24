@@ -16,7 +16,9 @@ const formatElapsed = (ms: number) => {
 };
 
 export const LiveTopicView = (
-  props: { topic: LiveTopic; status?: never } | { status: string; topic?: never }
+  props:
+    | { topic: LiveTopic; status?: never }
+    | { status: string; topic?: never }
 ) => {
   const router = useRouter();
   const [now, setNow] = useState(() => Date.now());
@@ -44,8 +46,10 @@ export const LiveTopicView = (
               : props.topic.label}
           </div>
           <div
-            className="font-mono font-bold leading-none tabular-nums"
+            className="font-mono font-bold tabular-nums leading-none"
             style={{ fontSize: "min(18vw, 40vh)" }}
+            // Server and client clocks can be a second apart on first render
+            suppressHydrationWarning
           >
             {formatElapsed(now - props.topic.startedAt)}
           </div>

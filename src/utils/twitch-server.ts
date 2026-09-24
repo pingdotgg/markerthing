@@ -121,13 +121,15 @@ type TwitchMarkersResponse = {
   pagination?: { cursor?: string };
 };
 
-// Uncached Twitch GET. Throws on errors, so a failed request is not read as
+// Uncached Twitch GET. Returns null on 404 (markers 404 when a creator has
+// no VODs). Throws on other errors, so a failed request is not read as
 // "offline" or "no markers".
 const fetchTwitchLive = async <T>(path: string, token: string) => {
   const res = await fetch(`https://api.twitch.tv/helix${path}`, {
     headers: generateTwitchRequestHeaders(token),
     cache: "no-store",
   });
+  if (res.status === 404) return null;
   if (!res.ok) throw new Error(`Twitch ${path} failed: ${res.status}`);
   return (await res.json()) as T;
 };
@@ -145,7 +147,7 @@ export const getLiveTopic = async (
     `/streams?user_id=${userId}`,
     token
   );
-  const stream = streamRes.data[0];
+  const stream = streamRes?.data[0];
   if (!stream) return null;
 
   // Markers come oldest first, max 100 per page, so walk to the last page.
@@ -161,9 +163,9 @@ export const getLiveTopic = async (
     );
 
     markers.push(
-      ...(res.data?.[0]?.videos?.flatMap((video) => video.markers ?? []) ?? [])
+      ...(res?.data?.[0]?.videos?.flatMap((video) => video.markers ?? []) ?? [])
     );
-    cursor = res.pagination?.cursor;
+    cursor = res?.pagination?.cursor;
     if (!cursor) break;
   }
 
