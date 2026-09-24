@@ -11,8 +11,9 @@ export default async function EmbedSetupPage() {
   const user = await currentUser();
   if (!user?.username) return <div>You have to be signed in</div>;
 
-  const host = headers().get("host");
-  const protocol = headers().get("x-forwarded-proto") ?? "https";
+  const requestHeaders = await headers();
+  const host = requestHeaders.get("host");
+  const protocol = requestHeaders.get("x-forwarded-proto") ?? "https";
   const url = `${protocol}://${host}/embed/${
     user.username
   }?key=${await getEmbedKey(user.username)}`;
@@ -30,7 +31,7 @@ export default async function EmbedSetupPage() {
           <input
             readOnly
             value={url}
-            className="min-w-0 flex-1 rounded border border-gray-700 bg-gray-950 px-3 py-2 font-mono text-xs text-white"
+            className="font-mono min-w-0 flex-1 rounded border border-gray-700 bg-gray-950 px-3 py-2 text-xs text-white"
           />
           <CopyButton text={url} />
         </div>

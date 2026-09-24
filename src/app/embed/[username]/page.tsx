@@ -9,20 +9,22 @@ export default async function EmbedPage({
   params,
   searchParams,
 }: {
-  params: { username: string };
-  searchParams: { key?: string };
+  params: Promise<{ username: string }>;
+  searchParams: Promise<{ key?: string }>;
 }) {
-  if (searchParams.key !== (await getEmbedKey(params.username))) {
+  const [{ username }, { key }] = await Promise.all([params, searchParams]);
+  if (key !== (await getEmbedKey(username))) {
     return <LiveTopicView status="Invalid embed link" />;
   }
 
   // Never throw here. An error page would stop the refresh loop in OBS.
-  try {
-    const topic = await getLiveTopic(params.username);
-    if (!topic) return <LiveTopicView status="Offline" />;
-    return <LiveTopicView topic={topic} />;
-  } catch (e) {
+  const topic = await getLiveTopic(username).catch((e) => {
     console.error("EMBED ERROR", e);
+    return "error" as const;
+  });
+  if (topic === "error") {
     return <LiveTopicView status="Could not load markers" />;
   }
+  if (!topic) return <LiveTopicView status="Offline" />;
+  return <LiveTopicView topic={topic} />;
 }
