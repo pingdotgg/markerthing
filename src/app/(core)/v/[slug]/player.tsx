@@ -103,11 +103,20 @@ function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
     })
     .sort((a, b) => a.position_seconds - b.position_seconds);
 
-  // Skip the fake "Intro" marker if a real marker already starts at 0
-  const mockedMarkers =
-    rewoundMarkers[0]?.position_seconds === 0
-      ? rewoundMarkers
-      : [{ position_seconds: 0, description: "Intro" }, ...rewoundMarkers];
+  // Add a fake "Intro" start marker at 0, unless a real start marker is there.
+  // It goes after other markers at 0, so it runs until the next real marker.
+  const hasStartAtZero = rewoundMarkers.some(
+    (m) =>
+      m.position_seconds === 0 &&
+      parseMetadataFromMarker(m.description).type === "start"
+  );
+  const mockedMarkers = hasStartAtZero
+    ? rewoundMarkers
+    : [
+        ...rewoundMarkers.filter((m) => m.position_seconds === 0),
+        { position_seconds: 0, description: "Intro" },
+        ...rewoundMarkers.filter((m) => m.position_seconds > 0),
+      ];
 
   const OFFSET = props.offset?.totalSeconds ?? 0;
 
