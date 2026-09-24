@@ -1,4 +1,5 @@
 import { clerkClient } from "@clerk/nextjs/server";
+import { parseMetadataFromMarker, parseRewind } from "./markers";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
   const headers = new Headers();
@@ -106,4 +107,78 @@ export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
   const token = response.data[0].token;
 
   return token;
+};
+
+export type LiveTopic = {
+  label: string;
+  type: "start" | "end";
+  // Unix ms. Includes any "-2" style rewind on the marker.
+  startedAt: number;
+};
+
+type TwitchMarkersResponse = {
+  data?: { videos?: { markers?: VOD["markers"] }[] }[];
+  pagination?: { cursor?: string };
+};
+
+// Gets the current topic for a live creator, from the latest marker on the
+// live stream. Returns null when the creator is not live.
+export const getLiveTopic = async (
+  creatorName: string
+): Promise<LiveTopic | null> => {
+  const token = await getValidTokenForCreator(creatorName);
+  const userId = await getTwitchUserId(creatorName, token);
+  if (!userId) return null;
+
+  const streamRes = await fetch(
+    `https://api.twitch.tv/helix/streams?user_id=${userId}`,
+    { headers: generateTwitchRequestHeaders(token), cache: "no-store" }
+  ).then((res) => res.json() as Promise<{ data?: { started_at: string }[] }>);
+
+  const stream = streamRes.data?.[0];
+  if (!stream) return null;
+
+  // Markers come oldest first, max 100 per page, so walk to the last page
+  const markers: VOD["markers"] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const res = (await fetch(
+      `https://api.twitch.tv/helix/streams/markers?user_id=${userId}&first=100${
+        cursor ? `&after=${cursor}` : ""
+      }`,
+      { headers: generateTwitchRequestHeaders(token), cache: "no-store" }
+    ).then((res) => res.json())) as TwitchMarkersResponse;
+
+    markers.push(...(res.data?.[0]?.videos?.[0]?.markers ?? []));
+    cursor = res.pagination?.cursor;
+    if (!cursor) break;
+  }
+
+  const streamStart = Date.parse(stream.started_at);
+
+  // Offset markers are not topics, so skip them. Also skip markers from an
+  // older stream, in case Twitch has not made a VOD for this one yet.
+  const topics = markers
+    .filter((marker) => Date.parse(marker.created_at) >= streamStart)
+    .map((marker) => {
+      const { rewindSeconds, description } = parseRewind(marker.description);
+      return {
+        ...parseMetadataFromMarker(description),
+        startedAt: Math.max(
+          Date.parse(marker.created_at) - rewindSeconds * 1000,
+          streamStart
+        ),
+      };
+    })
+    .filter((topic): topic is LiveTopic => topic.type !== "offset")
+    .sort((a, b) => a.startedAt - b.startedAt);
+
+  // Same "Intro" fallback as the VOD page
+  return (
+    topics[topics.length - 1] ?? {
+      label: "Intro",
+      type: "start",
+      startedAt: streamStart,
+    }
+  );
 };
