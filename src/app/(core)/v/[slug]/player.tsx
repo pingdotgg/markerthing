@@ -1,134 +1,21 @@
 "use client";
 
-import * as dayjs from "dayjs";
-import duration from "dayjs/plugin/duration";
 import { useEffect, useMemo, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
-import { Button, ButtonLink } from "~/app/_components/common/button";
+import { Button } from "~/app/_components/common/button";
 import { Card } from "~/app/_components/common/card";
 import { TextInput } from "~/app/_components/common/text-input";
+import {
+  buildSegments,
+  EXPORT_BUFFER_SECONDS,
+  formatSeconds,
+  parseOffsetValue,
+  parseTwitchDuration,
+  toCsv,
+  toYouTubeChapters,
+} from "~/utils/markers";
 import type { VOD } from "~/utils/twitch-server";
 import { Player } from "~/utils/types/twitch-player";
-import { parseMetadataFromMarker, parseRewind } from "~/utils/markers";
-dayjs.extend(duration);
-
-function parseOffsetValue(value: string): number | undefined {
-  // if there are no colons, assume its seconds
-  if (/^\d+$/.test(value)) return parseInt(value, 10);
-
-  // Supports HH:MM:SS, MM:SS, SS
-  // If it's not in the format, return undefined
-  if (!/^([0-5]?[0-9]:){0,2}[0-5][0-9]$/.test(value)) return undefined;
-
-  return value
-    .split(":")
-    .reduce((acc, cur) => (acc = acc * 60 + parseInt(cur, 10)), 0);
-}
-
-function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
-  const videoDuration = getDurationFromTwitchFormat(
-    (props.vod as any)?.duration ?? "0h0m0s"
-  );
-
-  // Apply rewinds first, so the previous marker ends where the rewound one starts
-  const rewoundMarkers = props.vod.markers
-    .map((marker) => {
-      const { rewindSeconds, description } = parseRewind(marker.description);
-      return {
-        position_seconds: Math.max(marker.position_seconds - rewindSeconds, 0),
-        description,
-      };
-    })
-    .sort((a, b) => a.position_seconds - b.position_seconds);
-
-  // Add a fake "Intro" start marker at 0, unless a real start marker is there.
-  // It goes after other markers at 0, so it runs until the next real marker.
-  const hasStartAtZero = rewoundMarkers.some(
-    (m) =>
-      m.position_seconds === 0 &&
-      parseMetadataFromMarker(m.description).type === "start"
-  );
-  const mockedMarkers = hasStartAtZero
-    ? rewoundMarkers
-    : [
-        ...rewoundMarkers.filter((m) => m.position_seconds === 0),
-        { position_seconds: 0, description: "Intro" },
-        ...rewoundMarkers.filter((m) => m.position_seconds > 0),
-      ];
-
-  const OFFSET = props.offset?.totalSeconds ?? 0;
-
-  const taggedMarkers = mockedMarkers.map((marker, id) => {
-    let endTime =
-      (mockedMarkers[id + 1]?.position_seconds ??
-        (videoDuration as duration.Duration)?.asSeconds?.()) - OFFSET;
-
-    endTime += EXPORT_BUFFER;
-
-    if (endTime < 0) endTime = 1;
-
-    const startTime = Math.max(
-      marker.position_seconds - OFFSET - EXPORT_BUFFER,
-      0
-    );
-
-    const duration = dayjs
-      .duration(endTime * 1000 - startTime * 1000)
-      .format("HH:mm:ss");
-
-    const taggedDescription = parseMetadataFromMarker(marker.description);
-
-    return {
-      startTime,
-      endTime,
-      duration,
-      ...taggedDescription,
-    };
-  });
-
-  const filteredMarkers = taggedMarkers.filter(
-    (m) => m.type === "start" || m.type === "offset"
-  );
-
-  const ytChapters = filteredMarkers.reduce((acc, marker) => {
-    const timeStr = dayjs
-      .duration(marker.startTime * 1000)
-      .format("HH:mm:ss");
-    return `${acc}${timeStr} ${marker.label}\n`;
-  }, "");
-
-  const csv = filteredMarkers
-    .map((marker) => {
-      return `${marker.startTime},${marker.endTime},${marker.label}`;
-    })
-    .join("\n");
-
-  return {
-    taggedMarkers,
-    filteredMarkers,
-    ytChapters,
-    csv,
-  };
-}
-
-// Converts "8h32m12s" format into dayjs duration
-// I absolutely hate this function and would love ANYTHING better
-const getDurationFromTwitchFormat = (input: string) => {
-  let preppedInput = input;
-  if (!preppedInput.includes("m")) preppedInput = `0m${preppedInput}`;
-  if (!preppedInput.includes("h")) preppedInput = `0h${preppedInput}`;
-
-  console.log("INPUT", preppedInput);
-  const [hs, hst] = preppedInput.split("h");
-  const [ms, mst] = hst!.split("m");
-  const [ss] = mst!.split("s");
-
-  const h = +(hs ?? "0");
-  const m = +(ms ?? "0");
-  const s = +(ss ?? "0");
-
-  return dayjs.duration({ hours: h, minutes: m, seconds: s });
-};
 
 const initializePlayer = (
   id: string,
@@ -163,14 +50,8 @@ const initializePlayer = (
 
   callback(player);
 
-  return () => {
-    console.log(player);
-    clearCurrent();
-  };
+  return clearCurrent;
 };
-
-// Number of seconds to pad on each side of exported CSV
-const EXPORT_BUFFER = 10;
 
 export const VodPlayer = (props: { id: string; vod: VOD }) => {
   const [player, setPlayer] = useState<Player | null>(null);
@@ -189,17 +70,15 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
     totalSeconds: 0,
   });
 
-  const parsedMarkers = useMemo(() => {
-    if (!props.vod) return;
-
-    return parseMarkers({
-      vod: props.vod,
-      offset: offset,
-    });
-  }, [props, offset]);
-
-  if (!parsedMarkers) return null;
-  const { taggedMarkers, filteredMarkers, ytChapters, csv } = parsedMarkers;
+  const segments = useMemo(
+    () =>
+      buildSegments({
+        markers: props.vod.markers,
+        videoSeconds: parseTwitchDuration(props.vod.duration),
+        offsetSeconds: offset.totalSeconds,
+      }),
+    [props.vod, offset.totalSeconds]
+  );
 
   return (
     <div className="grid min-h-0 flex-1 grid-rows-3 items-start gap-4 overflow-y-hidden p-4 sm:grid-cols-3 sm:grid-rows-1 sm:gap-8 sm:p-8">
@@ -223,7 +102,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           <div className="flex items-center gap-1.5">
             <Button
               onClick={() => {
-                navigator.clipboard.writeText(ytChapters);
+                navigator.clipboard.writeText(toYouTubeChapters(segments));
                 toast.success("Copied YouTube chapters to clipboard!");
               }}
             >
@@ -231,11 +110,16 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
             </Button>
             <a
               className="relative inline-flex items-center rounded border border-gray-700 bg-gray-800 px-4 py-2 text-sm font-medium text-white shadow-sm hover:bg-gray-750 hover:text-gray-100"
-              href={`data:text/csv;charset=utf-8,${encodeURIComponent(csv)}`}
+              href={`data:text/csv;charset=utf-8,${encodeURIComponent(
+                toCsv(segments)
+              )}`}
               {...{
-                download: `${props.vod?.created_at} VOD MARKERS${
+                download: `${props.vod.created_at.replaceAll(
+                  ":",
+                  "-"
+                )} VOD MARKERS${
                   offset.totalSeconds ? ` - ${offset.totalSeconds}s` : ""
-                }`,
+                }.csv`,
               }}
             >
               {`Download CSV`}
@@ -269,63 +153,68 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
 
         {props.vod && (
           <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg border border-gray-950/25 bg-gray-950/25 p-2 shadow-inner">
-            {filteredMarkers.map((marker, index) => {
-              return (
-                <li key={`${marker.startTime}-${index}`}>
-                  <button
-                    className="w-full"
-                    onClick={() => {
-                      if (marker.type === "start") {
-                        player?.seek(marker.startTime);
-                      }
-
-                      if (marker.type === "offset") {
-                        const offset = parseOffsetValue(marker.label);
-                        if (offset) {
-                          setOffset({
-                            presentational: marker.label,
-                            totalSeconds: offset,
-                          });
+            {segments
+              .filter((s) => s.type !== "end")
+              .map((marker, index) => {
+                return (
+                  <li key={`${marker.startTime}-${index}`}>
+                    <button
+                      className="w-full"
+                      onClick={() => {
+                        if (marker.type === "start") {
+                          // Seek in the VOD itself, with the same lead-in as the export
+                          player?.seek(
+                            Math.max(marker.vodStart - EXPORT_BUFFER_SECONDS, 0)
+                          );
                         }
-                      }
-                    }}
-                  >
-                    <Card className="flex animate-fade-in-down flex-col gap-4 p-4 text-left">
-                      <div className="flex justify-between break-words">
-                        {`${marker.label}`}
-                        <div className="flex flex-col gap-0.5">
-                          <div className="font-mono text-right text-xs text-gray-400">
-                            {`${dayjs
-                              .duration(marker.startTime * 1000)
-                              .format("HH:mm:ss")} - ${dayjs
-                              .duration(marker.endTime * 1000)
-                              .format("HH:mm:ss")}`}
-                          </div>
-                          <div className="font-mono text-right text-xs text-gray-400">
-                            {`(${marker.duration})`}
+
+                        if (marker.type === "offset") {
+                          const offset = parseOffsetValue(marker.label);
+                          if (offset) {
+                            setOffset({
+                              presentational: marker.label,
+                              totalSeconds: offset,
+                            });
+                          }
+                        }
+                      }}
+                    >
+                      <Card className="flex animate-fade-in-down flex-col gap-4 p-4 text-left">
+                        <div className="flex justify-between break-words">
+                          {`${marker.label}`}
+                          <div className="flex flex-col gap-0.5">
+                            <div className="font-mono text-right text-xs text-gray-400">
+                              {`${formatSeconds(
+                                marker.startTime
+                              )} - ${formatSeconds(marker.endTime)}`}
+                            </div>
+                            <div className="font-mono text-right text-xs text-gray-400">
+                              {`(${formatSeconds(
+                                marker.endTime - marker.startTime
+                              )})`}
+                            </div>
                           </div>
                         </div>
-                      </div>
-                      <div className="flex items-center justify-between text-gray-300">
-                        <div
-                          className={`-m-2 rounded-full px-2 py-1 text-sm font-bold ${
-                            marker.type === "start"
-                              ? "bg-green-800 text-white"
-                              : marker.type === "end"
-                              ? "bg-red-800 text-white"
-                              : marker.type === "offset"
-                              ? "bg-blue-800 text-white"
-                              : "bg-gray-800 text-white"
-                          }`}
-                        >
-                          {marker.type}
+                        <div className="flex items-center justify-between text-gray-300">
+                          <div
+                            className={`-m-2 rounded-full px-2 py-1 text-sm font-bold ${
+                              marker.type === "start"
+                                ? "bg-green-800 text-white"
+                                : marker.type === "end"
+                                ? "bg-red-800 text-white"
+                                : marker.type === "offset"
+                                ? "bg-blue-800 text-white"
+                                : "bg-gray-800 text-white"
+                            }`}
+                          >
+                            {marker.type}
+                          </div>
                         </div>
-                      </div>
-                    </Card>
-                  </button>
-                </li>
-              );
-            })}
+                      </Card>
+                    </button>
+                  </li>
+                );
+              })}
           </ul>
         )}
       </Card>

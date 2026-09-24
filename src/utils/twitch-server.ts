@@ -1,5 +1,5 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import { parseMetadataFromMarker, parseRewind } from "./markers";
+import { parseMarkerLabel, parseRewind } from "./markers";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
   const headers = new Headers();
@@ -182,7 +182,7 @@ export const getLiveTopic = async (
     .map((marker) => {
       const { rewindSeconds, description } = parseRewind(marker.description);
       return {
-        ...parseMetadataFromMarker(description),
+        ...parseMarkerLabel(description),
         // A "-2" rewind only moves the timer start, not which topic is current
         startedAt: Math.max(
           Date.parse(marker.created_at) - rewindSeconds * 1000,
