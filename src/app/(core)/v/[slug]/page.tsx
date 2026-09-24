@@ -5,6 +5,7 @@ import {
 } from "~/utils/twitch-server";
 import { VodPlayer } from "./player";
 import Script from "next/script";
+import ErrorPage from "~/app/error";
 
 export const dynamic = "force-dynamic";
 
@@ -20,14 +21,17 @@ export default async function VodPage({
   const self = await auth();
   if (!self || !self.userId) return <div>You have to be signed in</div>;
 
-  const token = await getTwitchTokenFromClerk(self.userId);
+  try {
+    const token = await getTwitchTokenFromClerk(self.userId);
+    const vodDetails = await getVodWithMarkers(params.slug, token);
 
-  const vodDetails = await getVodWithMarkers(params.slug, token);
-
-  return (
-    <>
-      <Script src="https://player.twitch.tv/js/embed/v1.js" async />
-      <VodPlayer id={params.slug} vod={vodDetails} />
-    </>
-  );
+    return (
+      <>
+        <Script src="https://player.twitch.tv/js/embed/v1.js" async />
+        <VodPlayer id={params.slug} vod={vodDetails} />
+      </>
+    );
+  } catch (e) {
+    return <ErrorPage message={(e as Error).message} />;
+  }
 }
