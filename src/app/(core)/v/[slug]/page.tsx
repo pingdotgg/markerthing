@@ -15,19 +15,20 @@ export const revalidate = 60;
 export default async function VodPage({
   params,
 }: {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
+  const { slug } = await params;
   const self = await auth();
   if (!self || !self.userId) return <div>You have to be signed in</div>;
 
   const token = await getTwitchTokenFromClerk(self.userId);
 
-  const vodDetails = await getVodWithMarkers(params.slug, token);
+  const vodDetails = await getVodWithMarkers(slug, token);
 
   return (
     <>
       <Script src="https://player.twitch.tv/js/embed/v1.js" async />
-      <VodPlayer id={params.slug} vod={vodDetails} />
+      <VodPlayer id={slug} vod={vodDetails} />
     </>
   );
 }

@@ -2,7 +2,6 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"] });
-export const runtime = "edge";
 
 export const metadata = {
   title: "MarkerThing",
@@ -13,7 +12,6 @@ export const metadata = {
 
 import React from "react";
 import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
 import PlausibleProvider from "next-plausible";
 export default async function RootLayout({
   children,
@@ -26,8 +24,19 @@ export default async function RootLayout({
         <PlausibleProvider domain="marker.ping.gg" />
       </head>
       <ClerkProvider
+        afterSignOutUrl="/"
         appearance={{
-          baseTheme: dark,
+          // Clerk's dark theme, inlined. @clerk/ui/themes would pull in
+          // Solana and React Native just for these colors.
+          variables: {
+            colorBackground: "#212126",
+            colorNeutral: "white",
+            colorPrimary: "#ffffff",
+            colorPrimaryForeground: "black",
+            colorForeground: "white",
+            colorInputForeground: "white",
+            colorInput: "#26262B",
+          },
         }}
       >
         <body

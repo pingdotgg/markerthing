@@ -1,5 +1,5 @@
 import React, { Suspense } from "react";
-import { SignedIn, SignedOut, UserButton } from "@clerk/nextjs";
+import { Show, UserButton } from "@clerk/nextjs";
 
 import { currentUser } from "@clerk/nextjs/server";
 
@@ -19,14 +19,12 @@ const TopRightNav = async ({ slug }: { slug: string | undefined }) => {
   return (
     <>
       <Suspense fallback={<div />}>
-        {/** @ts-expect-error Async Server Component */}
         <AsyncVodsButton slug={slug} />
       </Suspense>
       <div className="flex h-12 w-12 items-center">
         <UserButton
-          afterSignOutUrl="/"
           appearance={{
-            layout: {
+            options: {
               logoPlacement: "none",
             },
             elements: {
@@ -53,16 +51,15 @@ export const LayoutHelper = async ({
         <LogoMark />
 
         <div className="flex items-center gap-4">
-          <SignedOut>
+          <Show when="signed-out">
             <SignInButton />
-          </SignedOut>
-          <SignedIn>
+          </Show>
+          <Show when="signed-in">
             {/* TODO: Make this fallback a skeleton with a profile picture since we know that much by now */}
             <Suspense fallback={<div />}>
-              {/* @ts-expect-error Server Component */}
               <TopRightNav slug={slug} />
             </Suspense>
-          </SignedIn>
+          </Show>
         </div>
       </div>
 
