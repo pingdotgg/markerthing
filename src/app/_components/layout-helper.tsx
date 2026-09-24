@@ -6,6 +6,7 @@ import { currentUser } from "@clerk/nextjs/server";
 import { LogoMark } from "./logomark";
 import { SignInButton } from "./signin";
 import { GoToVodsButton } from "./gotovods";
+import { ButtonLink } from "./common/button";
 
 const AsyncVodsButton = async ({ slug }: { slug: string | undefined }) => {
   const user = await currentUser();
@@ -21,6 +22,9 @@ const TopRightNav = async ({ slug }: { slug: string | undefined }) => {
       <Suspense fallback={<div />}>
         <AsyncVodsButton slug={slug} />
       </Suspense>
+      <ButtonLink className="h-8" href="/embed">
+        OBS embed
+      </ButtonLink>
       <div className="flex h-12 w-12 items-center">
         <UserButton
           appearance={{
