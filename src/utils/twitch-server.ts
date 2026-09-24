@@ -1,23 +1,54 @@
 import { clerkClient } from "@clerk/nextjs/server";
+import type { TwitchMarker } from "./markers";
+
+const TWITCH_API = "https://api.twitch.tv/helix";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
   const headers = new Headers();
   headers.append("Client-ID", process.env.TWITCH_CLIENT_ID!);
-  headers.append("Accept", "application/vnd.twitchtv.v5+json");
   headers.append("Authorization", `Bearer ${accessToken}`);
 
   return headers;
 };
 
+// App access token for public Twitch data. Tokens last for weeks, so each
+// server instance keeps one until it is close to expiry.
+let appToken: { value: string; expiresAt: number } | undefined;
+
+export const getAppAccessToken = async () => {
+  if (appToken && appToken.expiresAt > Date.now() + 60_000) {
+    return appToken.value;
+  }
+
+  const response = await fetch("https://id.twitch.tv/oauth2/token", {
+    method: "POST",
+    body: new URLSearchParams({
+      client_id: process.env.TWITCH_CLIENT_ID!,
+      client_secret: process.env.TWITCH_CLIENT_SECRET!,
+      grant_type: "client_credentials",
+    }),
+  });
+  if (!response.ok) {
+    throw new Error(`Twitch app token request failed: ${response.status}`);
+  }
+
+  const json = (await response.json()) as {
+    access_token: string;
+    expires_in: number;
+  };
+  appToken = {
+    value: json.access_token,
+    expiresAt: Date.now() + json.expires_in * 1000,
+  };
+  return appToken.value;
+};
+
 export const getTwitchUserId = async (userName: string, token: string) => {
-  const res = await fetch(
-    `https://api.twitch.tv/helix/users?login=${userName}`,
-    {
-      method: "GET",
-      headers: generateTwitchRequestHeaders(token),
-      next: { revalidate: Infinity }, // These should never change
-    }
-  ).then((response) => response.json());
+  const res = await fetch(`${TWITCH_API}/users?login=${userName}`, {
+    method: "GET",
+    headers: generateTwitchRequestHeaders(token),
+    next: { revalidate: Infinity }, // These should never change
+  }).then((response) => response.json());
   if (res.error === "Unauthorized") throw new Error("Unauthorized");
 
   const responseId = (res as any)?.data[0]?.id as string;
@@ -26,86 +57,126 @@ export const getTwitchUserId = async (userName: string, token: string) => {
   return responseId;
 };
 
-export type VOD = {
+type TwitchVideo = {
+  id: string;
+  user_login: string;
+  user_name: string;
+  title: string;
   created_at: string;
-  markers: {
-    id: string;
-    created_at: string;
-    description: string;
-    position_seconds: number;
-    URL: string;
-  }[];
-  duration: string;
+  url: string;
+  duration: string; // "8h32m12s"
 };
 
-// Used for vod markers
-const getValidTokenForCreator = async (creatorName: string) => {
-  // Get token for the input displayName IF THEY HAVE SIGNED IN BEFORE
-  const clerk = await clerkClient();
-  const response = await clerk.users.getUserList({
-    username: [creatorName],
-  });
+export type VOD = TwitchVideo & { markers: TwitchMarker[] };
 
-  const creatorFoundInClerk = response.data[0];
-
-  console.log("found in clerk?", creatorFoundInClerk);
-
-  // Early escape if we don't find this user in Clerk
-  if (!creatorFoundInClerk) {
-    throw new Error("User not found in Clerk");
-  }
-
-  return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
-};
-
-export const getVodWithMarkers = async (vodId: string, token: string) => {
-  const vodResponse = await fetch(
-    `https://api.twitch.tv/helix/videos?id=${vodId}`,
+const getVideo = async (vodId: string) => {
+  const response = await fetch(
+    `${TWITCH_API}/videos?id=${encodeURIComponent(vodId)}`,
     {
-      method: "GET",
-      headers: generateTwitchRequestHeaders(token),
-      redirect: "follow",
-      cache: "no-store",
-    }
-  );
-  console.log("VOD RESPONSE", vodResponse.status);
-
-  const vodData = await vodResponse.json();
-  console.log("VOD DATA", vodData);
-
-  const creatorName = vodData?.data?.[0]?.user_login;
-
-  if (!creatorName) throw new Error("could not find vod data or user login");
-
-  const tokenForMarkers = await getValidTokenForCreator(creatorName);
-
-  const markersResponse = await fetch(
-    `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100`,
-    {
-      method: "GET",
-      headers: generateTwitchRequestHeaders(tokenForMarkers),
+      headers: generateTwitchRequestHeaders(await getAppAccessToken()),
       next: { revalidate: 60 },
     }
   );
+  // Twitch sends 400 for malformed IDs and 404 for deleted VODs
+  if (response.status === 400 || response.status === 404) return undefined;
+  if (!response.ok) {
+    throw new Error(`Twitch videos request failed: ${response.status}`);
+  }
 
-  console.log("MARKER RESPONSE", markersResponse.status);
-
-  const markersData = await markersResponse.json();
-  console.log("MARKER DATA", markersData);
-
-  const markers = markersData?.data?.[0]?.videos?.[0]["markers"] ?? [];
-
-  return { ...vodData?.data?.[0], markers } as VOD;
+  const json = (await response.json()) as { data: TwitchVideo[] };
+  return json.data[0];
 };
 
+type MarkersPage = {
+  // One entry per user who placed markers (the broadcaster and editors)
+  data: { videos: { markers: TwitchMarker[] }[] }[];
+  pagination: { cursor?: string };
+};
+
+// Only the VOD owner and their editors can read markers.
+// Returns undefined when this token's user is not one of them.
+const getMarkers = async (vodId: string, token: string) => {
+  const markers: TwitchMarker[] = [];
+  let cursor: string | undefined;
+
+  do {
+    const params = new URLSearchParams({ video_id: vodId, first: "100" });
+    if (cursor) params.set("after", cursor);
+
+    const response = await fetch(`${TWITCH_API}/streams/markers?${params}`, {
+      headers: generateTwitchRequestHeaders(token),
+      cache: "no-store",
+    });
+    if (response.status === 401 || response.status === 403) return undefined;
+    if (!response.ok) {
+      throw new Error(`Twitch markers request failed: ${response.status}`);
+    }
+
+    const page = (await response.json()) as MarkersPage;
+    const pageMarkers = page.data.flatMap((user) =>
+      user.videos.flatMap((video) => video.markers)
+    );
+    markers.push(...pageMarkers);
+    cursor = pageMarkers.length > 0 ? page.pagination.cursor : undefined;
+  } while (cursor);
+
+  return markers;
+};
+
+// The user's Twitch token, from the OAuth connection they signed in with
 export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
-  if (!clerkUserId) throw new Error("unauthorized");
   const clerk = await clerkClient();
   const response = await clerk.users.getUserOauthAccessToken(
     clerkUserId,
     "twitch"
   );
-  const token = response.data[0].token;
+  return response.data[0]?.token;
+};
 
-  return token;
+// The creator's Twitch token, if they have signed in to MarkerThing before
+const getCreatorToken = async (creatorLogin: string) => {
+  const clerk = await clerkClient();
+  const response = await clerk.users.getUserList({
+    username: [creatorLogin],
+  });
+  const creator = response.data[0];
+  if (!creator) return undefined;
+
+  return getTwitchTokenFromClerk(creator.id);
+};
+
+export type VodResult =
+  | { status: "ok"; vod: VOD }
+  | { status: "not-found" }
+  | { status: "creator-not-connected"; creator: string };
+
+// Loads a VOD and its markers for the signed-in viewer.
+// The viewer's own token works for their VODs (and channels they edit), which
+// skips the creator lookup in the common case.
+export const getVodWithMarkers = async (
+  vodId: string,
+  viewerClerkId: string
+): Promise<VodResult> => {
+  const [video, viewerToken] = await Promise.all([
+    getVideo(vodId),
+    getTwitchTokenFromClerk(viewerClerkId),
+  ]);
+  if (!video) return { status: "not-found" };
+
+  const viewerMarkers = viewerToken
+    ? await getMarkers(vodId, viewerToken)
+    : undefined;
+  if (viewerMarkers) {
+    return { status: "ok", vod: { ...video, markers: viewerMarkers } };
+  }
+
+  const creatorToken = await getCreatorToken(video.user_login);
+  const markers = creatorToken
+    ? await getMarkers(vodId, creatorToken)
+    : undefined;
+  if (!markers) {
+    return { status: "creator-not-connected", creator: video.user_name };
+  }
+
+  return { status: "ok", vod: { ...video, markers } };
 };

@@ -147,3 +147,10 @@ export class Player {
    */
   addEventListener(event: string, callback: () => void): void;
 }
+
+declare global {
+  interface Window {
+    // Set by https://player.twitch.tv/js/embed/v1.js
+    Twitch?: { Player: typeof Player };
+  }
+}

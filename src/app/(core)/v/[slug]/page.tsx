@@ -1,34 +1,78 @@
 import { auth } from "@clerk/nextjs/server";
-import {
-  getTwitchTokenFromClerk,
-  getVodWithMarkers,
-} from "~/utils/twitch-server";
+import type { Metadata } from "next";
+import { ButtonLink } from "~/app/_components/common/button";
+import { SignInButton } from "~/app/_components/signin";
+import { EXPORT_BUFFER_SECONDS } from "~/utils/markers";
+import { getVodWithMarkers } from "~/utils/twitch-server";
 import { VodPlayer } from "./player";
-import Script from "next/script";
 
-export const dynamic = "force-dynamic";
+export const metadata: Metadata = { title: "VOD markers | MarkerThing" };
 
-// I do the revalidate 0 here because "force-dynamic" doesn't actually work
-// See: https://github.com/vercel/next.js/issues/47273
-export const revalidate = 60;
+const Notice = (props: { title: string; children: React.ReactNode }) => (
+  <div className="m-auto flex max-w-md flex-col items-center gap-4 p-8 text-center">
+    <h1 className="text-xl font-semibold">{props.title}</h1>
+    {props.children}
+  </div>
+);
 
 export default async function VodPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{
+    offset?: string;
+    buffer?: string;
+    numbered?: string;
+  }>;
 }) {
-  const { slug } = await params;
-  const self = await auth();
-  if (!self || !self.userId) return <div>You have to be signed in</div>;
+  const [{ slug }, query, self] = await Promise.all([
+    params,
+    searchParams,
+    auth(),
+  ]);
 
-  const token = await getTwitchTokenFromClerk(self.userId);
+  if (!self.userId) {
+    return (
+      <Notice title="Sign in to see markers">
+        <SignInButton />
+      </Notice>
+    );
+  }
 
-  const vodDetails = await getVodWithMarkers(slug, token);
+  const result = await getVodWithMarkers(slug, self.userId);
+
+  if (result.status === "not-found") {
+    return (
+      <Notice title="VOD not found">
+        <p>This VOD does not exist, or Twitch deleted it.</p>
+        <ButtonLink href="/">Go home</ButtonLink>
+      </Notice>
+    );
+  }
+
+  if (result.status === "creator-not-connected") {
+    return (
+      <Notice title="Markers not available">
+        <p>{`${result.creator} has not signed in to MarkerThing yet.`}</p>
+        <ButtonLink href="/">Go home</ButtonLink>
+      </Notice>
+    );
+  }
+
+  const buffer = Number(query.buffer);
 
   return (
-    <>
-      <Script src="https://player.twitch.tv/js/embed/v1.js" async />
-      <VodPlayer id={slug} vod={vodDetails} />
-    </>
+    <VodPlayer
+      vod={result.vod}
+      initial={{
+        offset: query.offset ?? "",
+        buffer:
+          Number.isInteger(buffer) && buffer >= 0
+            ? buffer
+            : EXPORT_BUFFER_SECONDS,
+        numbered: query.numbered === "1",
+      }}
+    />
   );
 }

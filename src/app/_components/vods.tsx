@@ -1,23 +1,12 @@
 import {
   generateTwitchRequestHeaders,
+  getAppAccessToken,
   getTwitchUserId,
 } from "~/utils/twitch-server";
 import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { ButtonLink } from "./common/button";
-
-const getTwitchClientCredentials = async () => {
-  const response = await fetch(
-    `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
-    {
-      method: "POST",
-      redirect: "follow",
-    }
-  ).then((response) => response.json());
-
-  return response.access_token as string;
-};
 
 function sendTwitchAPIRequest(path: string, title: string, creds: string) {
   return fetch(`https://api.twitch.tv${path}`, {
@@ -107,7 +96,7 @@ export const VODs = async (props: { username: string }) => {
   const self = await auth();
   if (!self) throw new Error("you shouldn't be here");
 
-  const creds = await getTwitchClientCredentials();
+  const creds = await getAppAccessToken();
   const twitchUserId = await getTwitchUserId(props.username, creds);
 
   // fetch vods from twitch api

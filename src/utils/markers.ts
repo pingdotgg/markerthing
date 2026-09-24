@@ -8,11 +8,17 @@
 // "-2 Talking about Chrome"     starts 2 minutes before the marker was placed
 // "-30s Talking about Chrome"   starts 30 seconds before the marker was placed
 
-export type TwitchMarker = { position_seconds: number; description: string };
+export type TwitchMarker = {
+  id: string;
+  position_seconds: number;
+  description: string;
+};
 
 export type MarkerType = "start" | "end" | "offset";
 
 export type Segment = {
+  // Twitch marker ID, or "intro" for the fake intro clip
+  id: string;
   type: MarkerType;
   label: string;
   // Position in the VOD, for seeking
@@ -104,6 +110,7 @@ export function buildSegments(opts: {
     .map((marker) => {
       const { rewindSeconds, description } = parseRewind(marker.description);
       return {
+        id: marker.id,
         vodStart: Math.max(marker.position_seconds - rewindSeconds, 0),
         ...parseMarkerLabel(description),
       };
@@ -119,7 +126,7 @@ export function buildSegments(opts: {
     ? markers
     : [
         ...markers.filter((m) => m.vodStart === 0),
-        { vodStart: 0, type: "start" as const, label: "Intro" },
+        { id: "intro", vodStart: 0, type: "start" as const, label: "Intro" },
         ...markers.filter((m) => m.vodStart > 0),
       ];
 
@@ -138,6 +145,15 @@ export function buildSegments(opts: {
 
 const toCsvField = (value: string) =>
   /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
+
+// Prefixes labels with "01 ", "02 "... so exported files sort in order
+export function numberLabels<T extends { label: string }>(clips: T[]): T[] {
+  const width = Math.max(2, String(clips.length).length);
+  return clips.map((clip, i) => ({
+    ...clip,
+    label: `${String(i + 1).padStart(width, "0")} ${clip.label}`,
+  }));
+}
 
 // CSV for LosslessCut: "start,end,label" per clip, in seconds
 export function toCsv(segments: Segment[]): string {

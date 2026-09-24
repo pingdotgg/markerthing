@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSegments,
   formatSeconds,
+  numberLabels,
   parseMarkerLabel,
   parseOffsetValue,
   parseRewind,
@@ -11,6 +12,7 @@ import {
 } from "./markers";
 
 const marker = (position_seconds: number, description: string) => ({
+  id: `m${position_seconds}`,
   position_seconds,
   description,
 });
@@ -88,6 +90,7 @@ describe("buildSegments", () => {
 
     expect(segments).toEqual([
       {
+        id: "intro",
         type: "start",
         label: "Intro",
         vodStart: 0,
@@ -96,6 +99,7 @@ describe("buildSegments", () => {
         endTime: 610,
       },
       {
+        id: "m600",
         type: "start",
         label: "Chrome",
         vodStart: 600,
@@ -104,6 +108,7 @@ describe("buildSegments", () => {
         endTime: 910,
       },
       {
+        id: "m900",
         type: "end",
         label: "Chrome",
         vodStart: 900,
@@ -112,6 +117,7 @@ describe("buildSegments", () => {
         endTime: 1210,
       },
       {
+        id: "m1200",
         type: "start",
         label: "React",
         vodStart: 1200,
@@ -159,6 +165,7 @@ describe("buildSegments", () => {
 
     expect(segments).toEqual([
       {
+        id: "m300",
         type: "offset",
         label: "00:05:00",
         vodStart: 300,
@@ -167,6 +174,7 @@ describe("buildSegments", () => {
         endTime: 50,
       },
       {
+        id: "m400",
         type: "start",
         label: "On camera",
         vodStart: 400,
@@ -197,6 +205,15 @@ describe("exports", () => {
         "93590,97210,Late night",
       ].join("\n")
     );
+  });
+
+  it("numbers labels so exported files sort in order", () => {
+    const labels = numberLabels(segments.filter((s) => s.type === "start"));
+    expect(labels.map((s) => s.label)).toEqual([
+      "01 Intro",
+      '02 React, Vue, and "Svelte"',
+      "03 Late night",
+    ]);
   });
 
   it("keeps one YouTube chapter per timestamp", () => {
