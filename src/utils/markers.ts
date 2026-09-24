@@ -60,10 +60,15 @@ export function parseRewind(description: string) {
   };
 }
 
-// Parses "HH:MM:SS", "MM:SS" or "SS" into seconds
+// Parses "HH:MM:SS", "MM:SS" or "SS" into seconds.
+// Minutes and seconds after a colon must be 59 or less, to catch typos.
 export function parseOffsetValue(value: string): number | undefined {
   const parts = value.trim().split(":");
-  if (parts.length > 3 || parts.some((part) => !/^\d+$/.test(part))) {
+  if (
+    parts.length > 3 ||
+    parts.some((part) => !/^\d+$/.test(part)) ||
+    parts.slice(1).some((part) => Number(part) > 59)
+  ) {
     return undefined;
   }
   return parts.reduce((total, part) => total * 60 + Number(part), 0);
@@ -147,12 +152,16 @@ export function toCsv(segments: Segment[]): string {
     .join("\n");
 }
 
-// YouTube rejects chapters that share a timestamp, so when several clips
-// start at the same time only the last one is kept.
+// YouTube needs the first chapter at 00:00:00 and rejects chapters that
+// share a timestamp. When several clips start at the same time, only the
+// last one is kept.
 export function toYouTubeChapters(segments: Segment[]): string {
   const clips = segments.filter((s) => s.type === "start");
   return clips
     .filter((clip, i) => clips[i + 1]?.startTime !== clip.startTime)
-    .map((clip) => `${formatSeconds(clip.startTime)} ${clip.label}`)
+    .map(
+      (clip, i) =>
+        `${formatSeconds(i === 0 ? 0 : clip.startTime)} ${clip.label}`
+    )
     .join("\n");
 }

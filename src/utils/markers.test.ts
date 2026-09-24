@@ -59,6 +59,9 @@ describe("time parsing and formatting", () => {
     expect(parseOffsetValue("")).toBeUndefined();
     expect(parseOffsetValue("1:2:3:4")).toBeUndefined();
     expect(parseOffsetValue("abc")).toBeUndefined();
+    expect(parseOffsetValue("00:40:99")).toBeUndefined();
+    expect(parseOffsetValue("40:99")).toBeUndefined();
+    expect(parseOffsetValue("99:00")).toBe(5940);
   });
 
   it("parses Twitch durations", () => {
@@ -197,6 +200,19 @@ describe("exports", () => {
         "93590,97210,Late night",
       ].join("\n")
     );
+  });
+
+  it("starts YouTube chapters at 00:00:00 when the offset skips early clips", () => {
+    const offsetSegments = buildSegments({
+      markers: [
+        marker(100, "Before camera"),
+        marker(300, "END"),
+        marker(400, "On camera"),
+      ],
+      videoSeconds: 1000,
+      offsetSeconds: 350,
+    });
+    expect(toYouTubeChapters(offsetSegments)).toBe("00:00:00 On camera");
   });
 
   it("keeps one YouTube chapter per timestamp", () => {
