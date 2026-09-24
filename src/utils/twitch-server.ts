@@ -41,7 +41,8 @@ export type VOD = {
 // Used for vod markers
 const getValidTokenForCreator = async (creatorName: string) => {
   // Get token for the input displayName IF THEY HAVE SIGNED IN BEFORE
-  const response = await clerkClient.users.getUserList({
+  const clerk = await clerkClient();
+  const response = await clerk.users.getUserList({
     username: [creatorName],
   });
 
@@ -99,9 +100,10 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
 
 export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
   if (!clerkUserId) throw new Error("unauthorized");
-  const response = await clerkClient.users.getUserOauthAccessToken(
+  const clerk = await clerkClient();
+  const response = await clerk.users.getUserOauthAccessToken(
     clerkUserId,
-    "oauth_twitch"
+    "twitch"
   );
   const token = response.data[0].token;
 

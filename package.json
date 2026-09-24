@@ -4,39 +4,39 @@
   "private": true,
   "packageManager": "pnpm@8.15.9",
   "engines": {
-    "node": ">=18.0.0"
+    "node": ">=20.9.0"
   },
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint",
+    "lint": "eslint .",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@clerk/nextjs": "^5.2.6",
-    "@clerk/themes": "^2.1.13",
-    "@next/mdx": "^14.2.5",
-    "@types/node": "18.15.11",
-    "@types/react": "18.3.3",
-    "@types/react-dom": "18.3.0",
-    "autoprefixer": "10.4.14",
+    "@clerk/nextjs": "^7.9.6",
+    "@clerk/ui": "^1.35.0",
+    "@next/mdx": "^16.3.6",
     "dayjs": "^1.11.7",
-    "eslint": "8.37.0",
-    "eslint-config-next": "14.2.5",
-    "next": "14.2.5",
-    "next-plausible": "^3.7.2",
-    "postcss": "8.4.21",
-    "react": "18.3.1",
-    "react-dom": "18.3.1",
-    "react-hot-toast": "^2.4.0",
-    "tailwindcss": "3.3.1",
-    "typescript": "5.0.3"
+    "next": "16.3.6",
+    "next-plausible": "^3.12.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0",
+    "react-hot-toast": "^2.6.1"
   },
   "devDependencies": {
-    "@tailwindcss/typography": "^0.5.9",
+    "@tailwindcss/typography": "^0.5.20",
     "@types/mdx": "^2.0.4",
+    "@types/node": "^24",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19",
+    "autoprefixer": "^10",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "16.3.6",
+    "postcss": "^8",
     "prettier": "^2.8.7",
-    "prettier-plugin-tailwindcss": "^0.2.6"
+    "prettier-plugin-tailwindcss": "^0.2.6",
+    "tailwindcss": "^3",
+    "typescript": "6.0.3"
   }
 }

@@ -4,14 +4,14 @@ const nextConfig = {
     mdxRs: true,
   },
   images: {
-    domains: ["static-cdn.jtvnw.net", "vod-secure.twitch.tv"],
+    remotePatterns: [
+      { protocol: "https", hostname: "static-cdn.jtvnw.net" },
+      { protocol: "https", hostname: "vod-secure.twitch.tv" },
+    ],
   },
 
   typescript: {
     ignoreBuildErrors: true,
-  },
-  eslint: {
-    ignoreDuringBuilds: true,
   },
 };
 

@@ -5,8 +5,8 @@ export default async function VODsLayout({
   params,
 }: {
   children: React.ReactNode;
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 }) {
-  // @ts-expect-error Server Components :(
-  return <LayoutHelper slug={params.slug}>{children}</LayoutHelper>;
+  const { slug } = await params;
+  return <LayoutHelper slug={slug}>{children}</LayoutHelper>;
 }

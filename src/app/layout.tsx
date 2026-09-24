@@ -2,7 +2,6 @@ import "./globals.css";
 import { Inter } from "next/font/google";
 
 const inter = Inter({ subsets: ["latin"] });
-export const runtime = "edge";
 
 export const metadata = {
   title: "MarkerThing",
@@ -13,7 +12,7 @@ export const metadata = {
 
 import React from "react";
 import { ClerkProvider } from "@clerk/nextjs";
-import { dark } from "@clerk/themes";
+import { dark } from "@clerk/ui/themes";
 import PlausibleProvider from "next-plausible";
 export default async function RootLayout({
   children,
@@ -26,8 +25,9 @@ export default async function RootLayout({
         <PlausibleProvider domain="marker.ping.gg" />
       </head>
       <ClerkProvider
+        afterSignOutUrl="/"
         appearance={{
-          baseTheme: dark,
+          theme: dark,
         }}
       >
         <body
