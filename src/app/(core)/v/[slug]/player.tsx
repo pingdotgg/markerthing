@@ -30,11 +30,28 @@ function parseOffsetValue(value: string): number | undefined {
 // "END: Talking about Chrome" - end marker, tagged accordingly so it can be filtered out
 // "End of Talking about Chrome" - end marker, same as above
 // "OFFSET 00:40:31" - offset marker
+// "-2 Talking about Chrome" - start 2 minutes before the marker was placed
+// "-30s Talking about Chrome" - start 30 seconds before the marker was placed
 
 const START_LABELS = ["START:", "START OF", "START"];
 const END_LABELS = ["END:", "END OF", "END"];
 const OFFSET_LABELS = ["OFFSET", "OFFSET:"];
 const LABELS = [...START_LABELS, ...END_LABELS, ...OFFSET_LABELS];
+
+// Reads a leading rewind like "-2" (minutes), "-2m" or "-30s" off a marker.
+// Lets you mark something retroactively, after it already started.
+function parseRewind(marker: string) {
+  const match = /^-(\d+)([ms])?(?:\s+|$)/i.exec(marker);
+  if (!match) return { rewindSeconds: 0, description: marker };
+
+  const amount = parseInt(match[1]!, 10);
+  const isSeconds = match[2]?.toLowerCase() === "s";
+
+  return {
+    rewindSeconds: isSeconds ? amount : amount * 60,
+    description: marker.slice(match[0].length),
+  };
+}
 
 function parseMetadataFromMarker(marker: string) {
   for (const tl of START_LABELS) {
@@ -75,10 +92,31 @@ function parseMarkers(props: { vod: VOD; offset?: { totalSeconds: number } }) {
     (props.vod as any)?.duration ?? "0h0m0s"
   );
 
-  const mockedMarkers = [
-    { position_seconds: 0, id: "start", description: "Intro" },
-    ...props.vod.markers,
-  ];
+  // Apply rewinds first, so the previous marker ends where the rewound one starts
+  const rewoundMarkers = props.vod.markers
+    .map((marker) => {
+      const { rewindSeconds, description } = parseRewind(marker.description);
+      return {
+        position_seconds: Math.max(marker.position_seconds - rewindSeconds, 0),
+        description,
+      };
+    })
+    .sort((a, b) => a.position_seconds - b.position_seconds);
+
+  // Add a fake "Intro" start marker at 0, unless a real start marker is there.
+  // It goes after other markers at 0, so it runs until the next real marker.
+  const hasStartAtZero = rewoundMarkers.some(
+    (m) =>
+      m.position_seconds === 0 &&
+      parseMetadataFromMarker(m.description).type === "start"
+  );
+  const mockedMarkers = hasStartAtZero
+    ? rewoundMarkers
+    : [
+        ...rewoundMarkers.filter((m) => m.position_seconds === 0),
+        { position_seconds: 0, description: "Intro" },
+        ...rewoundMarkers.filter((m) => m.position_seconds > 0),
+      ];
 
   const OFFSET = props.offset?.totalSeconds ?? 0;
 
@@ -295,7 +333,7 @@ export const VodPlayer = (props: { id: string; vod: VOD }) => {
           <ul className="flex min-h-0 flex-1 flex-col gap-2 overflow-y-auto rounded-lg border border-gray-950/25 bg-gray-950/25 p-2 shadow-inner">
             {filteredMarkers.map((marker, index) => {
               return (
-                <li key={marker.startTime}>
+                <li key={`${marker.startTime}-${index}`}>
                   <button
                     className="w-full"
                     onClick={() => {
