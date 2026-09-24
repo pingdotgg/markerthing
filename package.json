@@ -11,13 +11,13 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.6",
     "@clerk/ui": "^1.35.0",
     "@next/mdx": "^16.3.6",
-    "dayjs": "^1.11.7",
     "next": "16.3.6",
     "next-plausible": "^3.12.5",
     "react": "19.3.0",
@@ -37,6 +37,7 @@
     "prettier": "^2.8.7",
     "prettier-plugin-tailwindcss": "^0.2.6",
     "tailwindcss": "^3",
-    "typescript": "6.0.3"
+    "typescript": "6.0.3",
+    "vitest": "^5.0.1"
   }
 }

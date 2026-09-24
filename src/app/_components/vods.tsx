@@ -4,7 +4,6 @@ import {
 } from "~/utils/twitch-server";
 import Link from "next/link";
 import Image from "next/image";
-import dayjs from "dayjs";
 import { auth } from "@clerk/nextjs/server";
 import { ButtonLink } from "./common/button";
 
@@ -169,7 +168,11 @@ export const VODs = async (props: { username: string }) => {
               />
               <div className="absolute left-0 top-0 p-2">
                 <div className="rounded-lg bg-gray-900/70 px-2 py-1 font-semibold text-white">
-                  {dayjs(vod.created_at).format("MM/DD/YYYY")}
+                  {new Date(vod.created_at).toLocaleDateString("en-US", {
+                    month: "2-digit",
+                    day: "2-digit",
+                    year: "numeric",
+                  })}
                 </div>
               </div>
               <div className="absolute bottom-0 w-full bg-gray-900/80 px-3 py-2 text-lg font-semibold">
