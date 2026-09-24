@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@clerk/nextjs": "^7.9.6",
-    "@clerk/ui": "^1.35.0",
     "@next/mdx": "^16.3.6",
     "next": "16.3.6",
     "next-plausible": "^3.12.5",
