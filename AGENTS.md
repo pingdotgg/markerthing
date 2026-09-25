@@ -16,7 +16,7 @@ If your diff rewrites the lockfile to v9 or adds `pnpm-workspace.yaml`, the wron
 
 ## Screenshot fixtures
 
-Put temporary routes for screenshots in `src/app/fixtures/<name>/page.tsx`. That folder is gitignored, so fixtures never ship. Render components with fake data instead of Twitch calls.
+Put temporary routes for screenshots in `src/app/fixtures/<name>/page.tsx`. That folder is gitignored, so fixtures stay out of commits and Git deploys. Delete them when the screenshots are done, because a build from your checkout still includes them. Render components with fake data instead of Twitch calls.
 
 A deleted route leaves stale types in `.next/` that fail a bare `tsc`. Use `pnpm typecheck`: it deletes `.next/dev/types` and regenerates `.next/types` first. To clean by hand, run `rm -rf .next/types .next/dev/types`.
 
