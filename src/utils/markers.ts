@@ -21,6 +21,8 @@ export type Segment = {
   // Bounds in the exported footage, with offset and buffer applied
   startTime: number;
   endTime: number;
+  // Only set on the fake "Intro" clip that buildSegments adds
+  isIntro?: true;
 };
 
 // Seconds of padding on each side of an exported clip
@@ -92,7 +94,8 @@ export function formatSeconds(totalSeconds: number): string {
   )}:${pad(seconds % 60)}`;
 }
 
-// Each marker runs until the next one (or the end of the VOD).
+// Each marker runs until the next start or end marker (or the end of the VOD).
+// Offset markers only set the offset, so they never end a clip.
 // Start clips that end before the offset are dropped, since they are not in
 // the offset footage.
 export function buildSegments(opts: {
@@ -117,6 +120,7 @@ export function buildSegments(opts: {
 
   // Add a fake "Intro" start marker at 0, unless a real start marker is there.
   // It goes after other markers at 0, so it runs until the next real marker.
+  // YouTube chapters use it to label the start. The CSV leaves it out.
   const hasStartAtZero = markers.some(
     (m) => m.vodStart === 0 && m.type === "start"
   );
@@ -124,12 +128,18 @@ export function buildSegments(opts: {
     ? markers
     : [
         ...markers.filter((m) => m.vodStart === 0),
-        { vodStart: 0, type: "start" as const, label: "Intro" },
+        {
+          vodStart: 0,
+          type: "start" as const,
+          label: "Intro",
+          isIntro: true as const,
+        },
         ...markers.filter((m) => m.vodStart > 0),
       ];
 
   return withIntro.flatMap((marker, i) => {
-    const vodEnd = withIntro[i + 1]?.vodStart ?? opts.videoSeconds;
+    const nextMarker = withIntro.slice(i + 1).find((m) => m.type !== "offset");
+    const vodEnd = nextMarker?.vodStart ?? opts.videoSeconds;
     if (marker.type === "start" && vodEnd <= offset) return [];
 
     return {
@@ -144,24 +154,39 @@ export function buildSegments(opts: {
 const toCsvField = (value: string) =>
   /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 
-// CSV for LosslessCut: "start,end,label" per clip, in seconds
+// CSV for LosslessCut: "start,end,label" per clip, in seconds.
+// Only clips you marked. The fake intro is left out.
 export function toCsv(segments: Segment[]): string {
   return segments
-    .filter((s) => s.type === "start")
+    .filter((s) => s.type === "start" && !s.isIntro)
     .map((s) => `${s.startTime},${s.endTime},${toCsvField(s.label)}`)
     .join("\n");
 }
 
-// YouTube needs the first chapter at 00:00:00 and rejects chapters that
-// share a timestamp. When several clips start at the same time, only the
-// last one is kept.
+// YouTube ignores all chapters unless the first one is at 00:00:00
+// and each one is at least 10 seconds long.
+const MIN_CHAPTER_SECONDS = 10;
+
+// One chapter per start clip.
+// With an offset, the first clip can start after 00:00:00. Then an "Intro"
+// chapter at 00:00:00 labels the footage before it.
+// When a chapter starts less than 10 seconds after the one before it, the
+// earlier one is dropped. If that was the first chapter, the next one moves
+// to 00:00:00.
 export function toYouTubeChapters(segments: Segment[]): string {
   const clips = segments.filter((s) => s.type === "start");
-  return clips
-    .filter((clip, i) => clips[i + 1]?.startTime !== clip.startTime)
+  const intro =
+    (clips[0]?.startTime ?? 0) > 0 ? [{ startTime: 0, label: "Intro" }] : [];
+  const chapters = [...intro, ...clips];
+
+  return chapters
+    .filter((chapter, i) => {
+      const next = chapters[i + 1];
+      return !next || next.startTime - chapter.startTime >= MIN_CHAPTER_SECONDS;
+    })
     .map(
-      (clip, i) =>
-        `${formatSeconds(i === 0 ? 0 : clip.startTime)} ${clip.label}`
+      (chapter, i) =>
+        `${formatSeconds(i === 0 ? 0 : chapter.startTime)} ${chapter.label}`
     )
     .join("\n");
 }
