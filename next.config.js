@@ -9,10 +9,6 @@ const nextConfig = {
       { protocol: "https", hostname: "vod-secure.twitch.tv" },
     ],
   },
-
-  typescript: {
-    ignoreBuildErrors: true,
-  },
 };
 
 const withMdx = require("@next/mdx")()(nextConfig);

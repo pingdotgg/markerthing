@@ -2,19 +2,22 @@ name: CI
 
 on: [push, pull_request]
 
-env:
-  DATABASE_URL: "https://fake.com"
-
 jobs:
   build:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout
-        uses: actions/checkout@v2
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+        with:
+          version: 8.15.9
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
 
-      - name: Install Dependencies
-        run: npm install -g pnpm && pnpm install
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Typecheck
         run: pnpm typecheck
@@ -22,5 +25,13 @@ jobs:
       - name: Lint
         run: pnpm lint
 
-      - name: Print Environment Variable
-        run: echo $MY_ENV_VAR
+      - name: Test
+        run: pnpm test
+
+      - name: Build
+        env:
+          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jb20k
+          CLERK_SECRET_KEY: sk_test_dummy
+          TWITCH_CLIENT_ID: dummy
+          TWITCH_CLIENT_SECRET: dummy
+        run: pnpm build
