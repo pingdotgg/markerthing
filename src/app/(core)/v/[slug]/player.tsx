@@ -143,18 +143,34 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
     [vod.markers, videoSeconds, cameraSeconds, buffer]
   );
 
-  // The checked clips, with renames and optional "01 " numbers
-  const pick = (segments: Segment[]) =>
-    segments
-      .filter((s) => s.type === "start" && !excluded.has(s.id))
-      .map((s) => ({ ...s, label: renamed[s.id] ?? s.label }));
-  const vodClips = pick(vodSegments);
-  const order = vodClips.map((clip) => clip.id);
-  const toFileCsv = (picked: Segment[]) =>
-    toCsv(numbered ? numberLabels(picked, order) : picked);
-  const clipNumbers = new Map(
-    order.map((id, i) => [id, formatClipNumber(i + 1, order.length)])
-  );
+  // A cleared rename falls back to the marker's own label
+  const labelOf = (clip: Segment) => renamed[clip.id]?.trim() || clip.label;
+
+  // Export data only changes with these inputs, not with the 1s playhead poll
+  const exports = useMemo(() => {
+    // The checked clips, with renames and optional "01 " numbers
+    const pick = (segments: Segment[]) =>
+      segments
+        .filter((s) => s.type === "start" && !excluded.has(s.id))
+        .map((s) => ({ ...s, label: renamed[s.id]?.trim() || s.label }));
+    const vodClips = pick(vodSegments);
+    const cameraClips = pick(cameraSegments);
+    const order = vodClips.map((clip) => clip.id);
+    const toFileCsv = (picked: Segment[]) =>
+      toCsv(numbered ? numberLabels(picked, order) : picked);
+
+    return {
+      count: vodClips.length,
+      numbers: new Map(
+        order.map((id, i) => [id, formatClipNumber(i + 1, order.length)])
+      ),
+      vod: { chapters: toYouTubeChapters(vodClips), csv: toFileCsv(vodClips) },
+      camera: {
+        chapters: toYouTubeChapters(cameraClips),
+        csv: toFileCsv(cameraClips),
+      },
+    };
+  }, [vodSegments, cameraSegments, excluded, renamed, numbered]);
 
   // A clip is playing from its padded start until the next clip takes over
   const activeId = clips.findLast(
@@ -241,9 +257,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
             <button
               key={clip.id}
               type="button"
-              title={`${renamed[clip.id] ?? clip.label} (${formatClock(
-                clip.vodStart
-              )})`}
+              title={`${labelOf(clip)} (${formatClock(clip.vodStart)})`}
               onClick={() => seek(clip)}
               className={`absolute inset-y-0 border-l border-black ${
                 clip.id === activeId
@@ -294,7 +308,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
       <div className="flex min-h-0 shrink-0 flex-col gap-4 sm:w-[26rem]">
         <div className="flex items-baseline justify-between">
           <h2 className="font-semibold">Clips</h2>
-          <span className="text-sm">{`${vodClips.length} of ${clips.length} selected`}</span>
+          <span className="text-sm">{`${exports.count} of ${clips.length} selected`}</span>
         </div>
 
         <ol className="min-h-0 flex-1 overflow-y-auto">
@@ -315,8 +329,8 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
                   className="accent-white"
                 />
                 {numbered && (
-                  <span className="font-mono w-5 text-sm text-zinc-500">
-                    {clipNumbers.get(clip.id)}
+                  <span className="w-5 text-sm tabular-nums text-zinc-500">
+                    {exports.numbers.get(clip.id)}
                   </span>
                 )}
                 {editingId === clip.id ? (
@@ -345,7 +359,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
                       included ? "text-white" : "text-zinc-600 line-through"
                     }`}
                   >
-                    {renamed[clip.id] ?? clip.label}
+                    {labelOf(clip)}
                   </button>
                 )}
                 <span className="text-sm text-zinc-500">
@@ -355,7 +369,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
                   type="button"
                   onClick={() => seek(clip)}
                   title="Play from here"
-                  className="font-mono flex w-20 items-center justify-end gap-1.5 text-sm text-zinc-300 hover:text-white"
+                  className="flex w-20 items-center justify-end gap-1.5 text-sm tabular-nums text-zinc-300 hover:text-white"
                 >
                   <PlayIcon />
                   {formatClock(clip.vodStart)}
@@ -368,8 +382,8 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
         <div className="flex flex-col gap-4 border-t border-zinc-800 pt-4 text-sm">
           <ExportRow
             title="Twitch VOD"
-            chapters={toYouTubeChapters(vodClips)}
-            csv={toFileCsv(vodClips)}
+            chapters={exports.vod.chapters}
+            csv={exports.vod.csv}
             fileName={`${fileDate} VOD MARKERS.csv`}
           />
 
@@ -381,8 +395,8 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
                   Camera recording
                 </>
               }
-              chapters={toYouTubeChapters(pick(cameraSegments))}
-              csv={toFileCsv(pick(cameraSegments))}
+              chapters={exports.camera.chapters}
+              csv={exports.camera.csv}
               fileName={`${fileDate} CAMERA MARKERS.csv`}
               disabled={cameraSeconds === undefined}
             />
@@ -394,7 +408,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
                 placeholder="0:00:00"
                 aria-invalid={cameraInvalid}
                 aria-label="Camera recording start"
-                className={`font-mono w-24 border bg-black px-2 py-1 outline-none focus:border-white ${
+                className={`w-24 border bg-black px-2 py-1 tabular-nums outline-none focus:border-white ${
                   cameraInvalid ? "border-red-500" : "border-zinc-700"
                 }`}
               />
@@ -432,7 +446,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
                   setBuffer(clamped);
                   setUrlParam("buffer", String(clamped));
                 }}
-                className="font-mono w-14 border border-zinc-700 bg-black px-2 py-1 outline-none focus:border-white"
+                className="w-14 border border-zinc-700 bg-black px-2 py-1 tabular-nums outline-none focus:border-white"
               />
               s before and after each clip
             </label>

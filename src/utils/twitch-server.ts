@@ -43,6 +43,12 @@ export const getAppAccessToken = async () => {
   return appToken.value;
 };
 
+// Twitch can revoke an app token early (for example after a secret rotation).
+// Call this after a failed request so the next one mints a new token.
+export const dropAppAccessToken = () => {
+  appToken = undefined;
+};
+
 export const getTwitchUserId = async (userName: string, token: string) => {
   const res = await fetch(`${TWITCH_API}/users?login=${userName}`, {
     method: "GET",
@@ -70,13 +76,17 @@ type TwitchVideo = {
 export type VOD = TwitchVideo & { markers: TwitchMarker[] };
 
 const getVideo = async (vodId: string) => {
-  const response = await fetch(
-    `${TWITCH_API}/videos?id=${encodeURIComponent(vodId)}`,
-    {
+  const request = async () =>
+    fetch(`${TWITCH_API}/videos?id=${encodeURIComponent(vodId)}`, {
       headers: generateTwitchRequestHeaders(await getAppAccessToken()),
       next: { revalidate: 60 },
-    }
-  );
+    });
+
+  let response = await request();
+  if (response.status === 401) {
+    dropAppAccessToken();
+    response = await request();
+  }
   // Twitch sends 400 for malformed IDs and 404 for deleted VODs
   if (response.status === 400 || response.status === 404) return undefined;
   if (!response.ok) {
@@ -93,11 +103,16 @@ type MarkersPage = {
   pagination: { cursor?: string };
 };
 
+// 50 pages of 100 is far more markers than a stream has. The cap only
+// guards against a cursor that never ends.
+const MAX_MARKER_PAGES = 50;
+
 // Only the VOD owner and their editors can read markers.
 // Returns undefined when this token's user is not one of them.
 const getMarkers = async (vodId: string, token: string) => {
   const markers: TwitchMarker[] = [];
   let cursor: string | undefined;
+  let pages = 0;
 
   do {
     const params = new URLSearchParams({ video_id: vodId, first: "100" });
@@ -118,7 +133,8 @@ const getMarkers = async (vodId: string, token: string) => {
     );
     markers.push(...pageMarkers);
     cursor = pageMarkers.length > 0 ? page.pagination.cursor : undefined;
-  } while (cursor);
+    pages++;
+  } while (cursor && pages < MAX_MARKER_PAGES);
 
   return markers;
 };

@@ -175,10 +175,11 @@ export const formatClipNumber = (n: number, total: number) =>
 
 // Where the camera recording starts, from the first OFFSET marker.
 // "OFFSET 00:40:31" gives the time. A bare "OFFSET" uses its own position.
+// Anything else ("OFFSET 40:61") is ignored, so a typo does not look valid.
 export function findMarkedOffset(segments: Segment[]): number | undefined {
   const marker = segments.find((s) => s.type === "offset");
   if (!marker) return undefined;
-  return parseOffsetValue(marker.label) ?? marker.vodStart;
+  return marker.label === "" ? marker.vodStart : parseOffsetValue(marker.label);
 }
 
 // CSV for LosslessCut: "start,end,label" per clip, in seconds

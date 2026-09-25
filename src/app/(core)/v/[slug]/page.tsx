@@ -20,11 +20,7 @@ export default async function VodPage({
   searchParams,
 }: {
   params: Promise<{ slug: string }>;
-  searchParams: Promise<{
-    offset?: string;
-    buffer?: string;
-    numbered?: string;
-  }>;
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
 }) {
   const [{ slug }, query, self] = await Promise.all([
     params,
@@ -64,20 +60,22 @@ export default async function VodPage({
     );
   }
 
-  const buffer = Number(query.buffer);
+  // A repeated param (?offset=1&offset=2) arrives as an array. Use the first.
+  const param = (key: string) => [query[key]].flat()[0];
+  const buffer = Number(param("buffer"));
 
   return (
     <VodPlayer
       vod={result.vod}
       initial={{
-        offset: query.offset ?? "",
+        offset: param("offset") ?? "",
         buffer:
           Number.isInteger(buffer) &&
           buffer >= 0 &&
           buffer <= MAX_BUFFER_SECONDS
             ? buffer
             : EXPORT_BUFFER_SECONDS,
-        numbered: query.numbered === "1",
+        numbered: param("numbered") === "1",
       }}
     />
   );

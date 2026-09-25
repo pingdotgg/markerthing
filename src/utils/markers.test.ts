@@ -227,6 +227,10 @@ describe("exports", () => {
       markers: [marker(300, "OFFSET")],
       videoSeconds: 1000,
     });
+    const typo = buildSegments({
+      markers: [marker(300, "OFFSET 40:61")],
+      videoSeconds: 1000,
+    });
     const none = buildSegments({
       markers: [marker(300, "Chrome")],
       videoSeconds: 1000,
@@ -234,6 +238,7 @@ describe("exports", () => {
 
     expect(findMarkedOffset(withTime)).toBe(500);
     expect(findMarkedOffset(bare)).toBe(300);
+    expect(findMarkedOffset(typo)).toBeUndefined();
     expect(findMarkedOffset(none)).toBeUndefined();
   });
 

@@ -1,4 +1,5 @@
 import {
+  dropAppAccessToken,
   generateTwitchRequestHeaders,
   getAppAccessToken,
   getTwitchUserId,
@@ -96,8 +97,15 @@ export const VODs = async (props: { username: string }) => {
   const self = await auth();
   if (!self) throw new Error("you shouldn't be here");
 
+  // After a failed Twitch request, drop the cached app token in case Twitch
+  // revoked it, so the next page load gets a new one
   const creds = await getAppAccessToken();
-  const twitchUserId = await getTwitchUserId(props.username, creds);
+  const twitchUserId = await getTwitchUserId(props.username, creds).catch(
+    (error) => {
+      dropAppAccessToken();
+      throw error;
+    }
+  );
 
   // fetch vods from twitch api
 
@@ -118,10 +126,12 @@ export const VODs = async (props: { username: string }) => {
   ]);
 
   if (vodResult.status === "rejected") {
+    dropAppAccessToken();
     throw new Error(vodResult.reason.message);
   }
 
   if (streamResult.status === "rejected") {
+    dropAppAccessToken();
     throw new Error(streamResult.reason.message);
   }
 
