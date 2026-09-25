@@ -221,7 +221,7 @@ describe("exports", () => {
     );
   });
 
-  it("starts YouTube chapters at 00:00:00 when the offset skips early clips", () => {
+  it("adds an Intro chapter when the offset skips early clips", () => {
     const offsetSegments = buildSegments({
       markers: [
         marker(100, "Before camera"),
@@ -231,7 +231,9 @@ describe("exports", () => {
       videoSeconds: 1000,
       offsetSeconds: 350,
     });
-    expect(toYouTubeChapters(offsetSegments)).toBe("00:00:00 On camera");
+    expect(toYouTubeChapters(offsetSegments)).toBe(
+      ["00:00:00 Intro", "00:00:40 On camera"].join("\n")
+    );
   });
 
   it("keeps one YouTube chapter per timestamp", () => {

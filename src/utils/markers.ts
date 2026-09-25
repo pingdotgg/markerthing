@@ -166,13 +166,19 @@ export function toCsv(segments: Segment[]): string {
 // YouTube needs the first chapter at 00:00:00 and rejects chapters that
 // share a timestamp. When several clips start at the same time, only the
 // last one is kept.
+// With an offset, the first clip can start after 00:00:00. Then an "Intro"
+// chapter at 00:00:00 labels the footage before it.
 export function toYouTubeChapters(segments: Segment[]): string {
   const clips = segments.filter((s) => s.type === "start");
-  return clips
-    .filter((clip, i) => clips[i + 1]?.startTime !== clip.startTime)
+  const intro =
+    (clips[0]?.startTime ?? 0) > 0 ? [{ startTime: 0, label: "Intro" }] : [];
+  const chapters = [...intro, ...clips];
+
+  return chapters
+    .filter((chapter, i) => chapters[i + 1]?.startTime !== chapter.startTime)
     .map(
-      (clip, i) =>
-        `${formatSeconds(i === 0 ? 0 : clip.startTime)} ${clip.label}`
+      (chapter, i) =>
+        `${formatSeconds(i === 0 ? 0 : chapter.startTime)} ${chapter.label}`
     )
     .join("\n");
 }
