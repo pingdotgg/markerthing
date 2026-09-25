@@ -21,6 +21,8 @@ export type Segment = {
   // Bounds in the exported footage, with offset and buffer applied
   startTime: number;
   endTime: number;
+  // Only set on the fake "Intro" clip that buildSegments adds
+  isIntro?: true;
 };
 
 // Seconds of padding on each side of an exported clip
@@ -92,7 +94,8 @@ export function formatSeconds(totalSeconds: number): string {
   )}:${pad(seconds % 60)}`;
 }
 
-// Each marker runs until the next one (or the end of the VOD).
+// Each marker runs until the next start or end marker (or the end of the VOD).
+// Offset markers only set the offset, so they never end a clip.
 // Start clips that end before the offset are dropped, since they are not in
 // the offset footage.
 export function buildSegments(opts: {
@@ -117,6 +120,7 @@ export function buildSegments(opts: {
 
   // Add a fake "Intro" start marker at 0, unless a real start marker is there.
   // It goes after other markers at 0, so it runs until the next real marker.
+  // YouTube chapters use it to label the start. The CSV leaves it out.
   const hasStartAtZero = markers.some(
     (m) => m.vodStart === 0 && m.type === "start"
   );
@@ -124,12 +128,18 @@ export function buildSegments(opts: {
     ? markers
     : [
         ...markers.filter((m) => m.vodStart === 0),
-        { vodStart: 0, type: "start" as const, label: "Intro" },
+        {
+          vodStart: 0,
+          type: "start" as const,
+          label: "Intro",
+          isIntro: true as const,
+        },
         ...markers.filter((m) => m.vodStart > 0),
       ];
 
   return withIntro.flatMap((marker, i) => {
-    const vodEnd = withIntro[i + 1]?.vodStart ?? opts.videoSeconds;
+    const nextMarker = withIntro.slice(i + 1).find((m) => m.type !== "offset");
+    const vodEnd = nextMarker?.vodStart ?? opts.videoSeconds;
     if (marker.type === "start" && vodEnd <= offset) return [];
 
     return {
@@ -144,10 +154,11 @@ export function buildSegments(opts: {
 const toCsvField = (value: string) =>
   /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 
-// CSV for LosslessCut: "start,end,label" per clip, in seconds
+// CSV for LosslessCut: "start,end,label" per clip, in seconds.
+// Only clips you marked. The fake intro is left out.
 export function toCsv(segments: Segment[]): string {
   return segments
-    .filter((s) => s.type === "start")
+    .filter((s) => s.type === "start" && !s.isIntro)
     .map((s) => `${s.startTime},${s.endTime},${toCsvField(s.label)}`)
     .join("\n");
 }

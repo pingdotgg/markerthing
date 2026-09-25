@@ -97,6 +97,7 @@ describe("buildSegments", () => {
         vodEnd: 600,
         startTime: 0,
         endTime: 610,
+        isIntro: true,
       },
       {
         type: "start",
@@ -156,7 +157,7 @@ describe("buildSegments", () => {
         marker(400, "On camera"),
       ],
       videoSeconds: 1000,
-      offsetSeconds: 350,
+      offsetSeconds: 400,
       bufferSeconds: 0,
     });
 
@@ -167,16 +168,34 @@ describe("buildSegments", () => {
         vodStart: 300,
         vodEnd: 400,
         startTime: 0,
-        endTime: 50,
+        endTime: 0,
       },
       {
         type: "start",
         label: "On camera",
         vodStart: 400,
         vodEnd: 1000,
-        startTime: 50,
-        endTime: 650,
+        startTime: 0,
+        endTime: 600,
       },
+    ]);
+  });
+
+  it("does not end a clip at an offset marker", () => {
+    const segments = buildSegments({
+      markers: [
+        marker(0, "Chrome"),
+        marker(300, "OFFSET 00:04:00"),
+        marker(600, "React"),
+      ],
+      videoSeconds: 900,
+      bufferSeconds: 0,
+    });
+
+    expect(segments.map((s) => [s.label, s.vodStart, s.vodEnd])).toEqual([
+      ["Chrome", 0, 600],
+      ["00:04:00", 300, 600],
+      ["React", 600, 900],
     ]);
   });
 });
@@ -192,13 +211,11 @@ describe("exports", () => {
     videoSeconds: 27 * 3600,
   });
 
-  it("writes only start clips to the CSV, quoting labels when needed", () => {
+  it("writes only marked start clips to the CSV, quoting labels when needed", () => {
     expect(toCsv(segments)).toBe(
-      [
-        "0,15,Intro",
-        '0,70,"React, Vue, and ""Svelte"""',
-        "93590,97210,Late night",
-      ].join("\n")
+      ['0,100,"React, Vue, and ""Svelte"""', "93590,97210,Late night"].join(
+        "\n"
+      )
     );
   });
 
