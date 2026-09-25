@@ -236,6 +236,23 @@ describe("exports", () => {
     );
   });
 
+  it("drops a YouTube chapter shorter than 10 seconds and keeps the later one", () => {
+    const shortSegments = buildSegments({
+      markers: [
+        // With the 10s buffer, Chrome starts 2s after the intro
+        marker(12, "Chrome"),
+        marker(100, "React"),
+        // 5s after React
+        marker(105, "Vue"),
+        marker(300, "Svelte"),
+      ],
+      videoSeconds: 600,
+    });
+    expect(toYouTubeChapters(shortSegments)).toBe(
+      ["00:00:00 Chrome", "00:01:35 Vue", "00:04:50 Svelte"].join("\n")
+    );
+  });
+
   it("keeps one YouTube chapter per timestamp", () => {
     expect(toYouTubeChapters(segments)).toBe(
       ['00:00:00 React, Vue, and "Svelte"', "25:59:50 Late night"].join("\n")
