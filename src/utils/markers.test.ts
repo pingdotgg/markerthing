@@ -153,7 +153,7 @@ describe("buildSegments", () => {
     const segments = buildSegments({
       markers: [
         marker(100, "Before camera"),
-        marker(300, "OFFSET 00:05:00"),
+        marker(300, "OFFSET 00:06:40"),
         marker(400, "On camera"),
       ],
       videoSeconds: 1000,
@@ -164,7 +164,7 @@ describe("buildSegments", () => {
     expect(segments).toEqual([
       {
         type: "offset",
-        label: "00:05:00",
+        label: "00:06:40",
         vodStart: 300,
         vodEnd: 400,
         startTime: 0,
