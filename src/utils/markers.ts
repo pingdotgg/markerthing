@@ -32,6 +32,7 @@ export type Segment = {
 
 // Seconds of padding on each side of an exported clip
 export const EXPORT_BUFFER_SECONDS = 10;
+export const MAX_BUFFER_SECONDS = 600;
 
 // A tag only counts as a whole word: "END: x", "End of x", "END x" or "END".
 // "Endgame talk" and "Startup ideas" are plain labels.

@@ -9,6 +9,7 @@ import {
   findMarkedOffset,
   formatClipNumber,
   formatSeconds,
+  MAX_BUFFER_SECONDS,
   numberLabels,
   parseOffsetValue,
   parseTwitchDuration,
@@ -45,7 +46,7 @@ const formatLength = (totalSeconds: number) => {
 };
 
 const buttonClasses =
-  "border border-zinc-700 px-3 py-1.5 hover:bg-zinc-900 aria-disabled:pointer-events-none aria-disabled:opacity-40";
+  "border border-zinc-700 px-3 py-1.5 hover:bg-zinc-900 disabled:pointer-events-none disabled:opacity-40 aria-disabled:pointer-events-none aria-disabled:opacity-40";
 
 const PlayIcon = () => (
   <svg viewBox="0 0 10 10" className="h-2.5 w-2.5 fill-current">
@@ -67,7 +68,7 @@ const ExportRow = (props: {
     </span>
     <button
       type="button"
-      aria-disabled={props.disabled}
+      disabled={props.disabled}
       className={buttonClasses}
       onClick={() => {
         navigator.clipboard.writeText(props.chapters);
@@ -76,8 +77,13 @@ const ExportRow = (props: {
     >
       Copy chapters
     </button>
+    {/* No href while disabled, so the link cannot be clicked or keyboard activated */}
     <a
-      href={`data:text/csv;charset=utf-8,${encodeURIComponent(props.csv)}`}
+      href={
+        props.disabled
+          ? undefined
+          : `data:text/csv;charset=utf-8,${encodeURIComponent(props.csv)}`
+      }
       download={props.fileName}
       aria-disabled={props.disabled}
       className={`${buttonClasses} border-white bg-white text-black hover:bg-zinc-200`}
@@ -414,11 +420,17 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
               <input
                 type="number"
                 min={0}
+                max={MAX_BUFFER_SECONDS}
                 value={buffer}
                 onChange={(e) => {
-                  const value = Math.max(0, Math.floor(Number(e.target.value)));
-                  setBuffer(value);
-                  setUrlParam("buffer", String(value));
+                  const value = Math.floor(Number(e.target.value));
+                  if (!Number.isFinite(value)) return;
+                  const clamped = Math.min(
+                    Math.max(value, 0),
+                    MAX_BUFFER_SECONDS
+                  );
+                  setBuffer(clamped);
+                  setUrlParam("buffer", String(clamped));
                 }}
                 className="font-mono w-14 border border-zinc-700 bg-black px-2 py-1 outline-none focus:border-white"
               />

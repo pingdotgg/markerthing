@@ -148,7 +148,8 @@ const getCreatorToken = async (creatorLogin: string) => {
 export type VodResult =
   | { status: "ok"; vod: VOD }
   | { status: "not-found" }
-  | { status: "creator-not-connected"; creator: string };
+  // `rejected` means the creator signed in before, but Twitch refused their token
+  | { status: "creator-not-connected"; creator: string; rejected: boolean };
 
 // Loads a VOD and its markers for the signed-in viewer.
 // The viewer's own token works for their VODs (and channels they edit), which
@@ -171,11 +172,21 @@ export const getVodWithMarkers = async (
   }
 
   const creatorToken = await getCreatorToken(video.user_login);
-  const markers = creatorToken
-    ? await getMarkers(vodId, creatorToken)
-    : undefined;
+  if (!creatorToken) {
+    return {
+      status: "creator-not-connected",
+      creator: video.user_name,
+      rejected: false,
+    };
+  }
+
+  const markers = await getMarkers(vodId, creatorToken);
   if (!markers) {
-    return { status: "creator-not-connected", creator: video.user_name };
+    return {
+      status: "creator-not-connected",
+      creator: video.user_name,
+      rejected: true,
+    };
   }
 
   return { status: "ok", vod: { ...video, markers } };

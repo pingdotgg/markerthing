@@ -2,7 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import type { Metadata } from "next";
 import { ButtonLink } from "~/app/_components/common/button";
 import { SignInButton } from "~/app/_components/signin";
-import { EXPORT_BUFFER_SECONDS } from "~/utils/markers";
+import { EXPORT_BUFFER_SECONDS, MAX_BUFFER_SECONDS } from "~/utils/markers";
 import { getVodWithMarkers } from "~/utils/twitch-server";
 import { VodPlayer } from "./player";
 
@@ -54,7 +54,11 @@ export default async function VodPage({
   if (result.status === "creator-not-connected") {
     return (
       <Notice title="Markers not available">
-        <p>{`${result.creator} has not signed in to MarkerThing yet.`}</p>
+        <p>
+          {result.rejected
+            ? `${result.creator} needs to sign in to MarkerThing again.`
+            : `${result.creator} has not signed in to MarkerThing yet.`}
+        </p>
         <ButtonLink href="/">Go home</ButtonLink>
       </Notice>
     );
@@ -68,7 +72,9 @@ export default async function VodPage({
       initial={{
         offset: query.offset ?? "",
         buffer:
-          Number.isInteger(buffer) && buffer >= 0
+          Number.isInteger(buffer) &&
+          buffer >= 0 &&
+          buffer <= MAX_BUFFER_SECONDS
             ? buffer
             : EXPORT_BUFFER_SECONDS,
         numbered: query.numbered === "1",
