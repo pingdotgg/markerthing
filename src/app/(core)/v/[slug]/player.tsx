@@ -71,8 +71,10 @@ const ExportRow = (props: {
       disabled={props.disabled}
       className={buttonClasses}
       onClick={() => {
-        navigator.clipboard.writeText(props.chapters);
-        toast.success("Copied YouTube chapters");
+        navigator.clipboard.writeText(props.chapters).then(
+          () => toast.success("Copied YouTube chapters"),
+          () => toast.error("Could not copy to the clipboard")
+        );
       }}
     >
       Copy chapters
