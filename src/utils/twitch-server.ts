@@ -50,17 +50,23 @@ export const dropAppAccessToken = () => {
 };
 
 export const getTwitchUserId = async (userName: string, token: string) => {
-  const res = await fetch(`${TWITCH_API}/users?login=${userName}`, {
-    method: "GET",
-    headers: generateTwitchRequestHeaders(token),
-    next: { revalidate: Infinity }, // These should never change
-  }).then((response) => response.json());
-  if (res.error === "Unauthorized") throw new Error("Unauthorized");
+  const response = await fetch(
+    `https://api.twitch.tv/helix/users?${new URLSearchParams({
+      login: userName,
+    })}`,
+    {
+      method: "GET",
+      headers: generateTwitchRequestHeaders(token),
+      // Twitch logins can change or be reassigned to another account.
+      next: { revalidate: 60 },
+    }
+  );
+  if (!response.ok) {
+    throw new Error(`Could not look up Twitch user: ${response.status}`);
+  }
 
-  const responseId = (res as any)?.data[0]?.id as string;
-  if (!responseId) return null;
-
-  return responseId;
+  const result = (await response.json()) as { data?: { id: string }[] };
+  return result.data?.[0]?.id ?? null;
 };
 
 type TwitchVideo = {

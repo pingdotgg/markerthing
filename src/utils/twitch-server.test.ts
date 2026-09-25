@@ -45,6 +45,7 @@ const twitch = vi.fn(async (url: string, init?: RequestInit) => {
   if (url.includes("/videos?")) return json({ data: [] });
 
   const auth = new Headers(init?.headers).get("Authorization");
+  if (auth === "Bearer broken-token") return json({}, 500);
   if (auth !== "Bearer creator-token") return json({}, 403);
   if (!url.includes("after=")) {
     return json({
@@ -105,6 +106,14 @@ describe("getVodWithMarkers", () => {
       creator: "Creator",
       rejected: true,
     });
+  });
+
+  it("throws when Twitch fails, instead of showing no markers", async () => {
+    clerk.state.tokens = { "creator-id": "broken-token" };
+
+    await expect(getVodWithMarkers("v1", "creator-id")).rejects.toThrow(
+      "Twitch markers request failed: 500"
+    );
   });
 
   it("returns not-found for a VOD Twitch does not have", async () => {
