@@ -11,20 +11,23 @@ export const generateTwitchRequestHeaders = (accessToken: string) => {
 };
 
 export const getTwitchUserId = async (userName: string, token: string) => {
-  const res = await fetch(
-    `https://api.twitch.tv/helix/users?login=${userName}`,
+  const response = await fetch(
+    `https://api.twitch.tv/helix/users?${new URLSearchParams({
+      login: userName,
+    })}`,
     {
       method: "GET",
       headers: generateTwitchRequestHeaders(token),
-      next: { revalidate: Infinity }, // These should never change
+      // Twitch logins can change or be reassigned to another account.
+      next: { revalidate: 60 },
     }
-  ).then((response) => response.json());
-  if (res.error === "Unauthorized") throw new Error("Unauthorized");
+  );
+  if (!response.ok) {
+    throw new Error(`Could not look up Twitch user: ${response.status}`);
+  }
 
-  const responseId = (res as any)?.data[0]?.id as string;
-  if (!responseId) return null;
-
-  return responseId;
+  const result = (await response.json()) as { data?: { id: string }[] };
+  return result.data?.[0]?.id ?? null;
 };
 
 export type VOD = {
