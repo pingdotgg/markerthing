@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   buildSegments,
+  findMarkedOffset,
   formatSeconds,
   numberLabels,
   parseMarkerLabel,
@@ -154,11 +155,11 @@ describe("buildSegments", () => {
     expect(segments.map((s) => s.label)).toEqual(["Cold open", "Topic"]);
   });
 
-  it("drops clips before the offset and keeps VOD times for seeking", () => {
+  it("drops clips that end before the offset and keeps VOD times", () => {
     const segments = buildSegments({
       markers: [
         marker(100, "Before camera"),
-        marker(300, "OFFSET 00:05:00"),
+        marker(300, "OFFSET"),
         marker(400, "On camera"),
       ],
       videoSeconds: 1000,
@@ -166,25 +167,20 @@ describe("buildSegments", () => {
       bufferSeconds: 0,
     });
 
-    expect(segments).toEqual([
-      {
-        id: "m300",
-        type: "offset",
-        label: "00:05:00",
-        vodStart: 300,
-        vodEnd: 400,
-        startTime: 0,
-        endTime: 50,
-      },
-      {
-        id: "m400",
-        type: "start",
-        label: "On camera",
-        vodStart: 400,
-        vodEnd: 1000,
-        startTime: 50,
-        endTime: 650,
-      },
+    // The intro ends before the camera starts. The OFFSET marker does not
+    // end "Before camera", so its last 50 seconds are in the camera footage.
+    expect(
+      segments.map((s) => [
+        s.label,
+        s.vodStart,
+        s.vodEnd,
+        s.startTime,
+        s.endTime,
+      ])
+    ).toEqual([
+      ["Before camera", 100, 400, 0, 50],
+      ["", 300, 400, 0, 50],
+      ["On camera", 400, 1000, 50, 650],
     ]);
   });
 });
@@ -204,19 +200,41 @@ describe("exports", () => {
     expect(toCsv(segments)).toBe(
       [
         "0,15,Intro",
-        '0,70,"React, Vue, and ""Svelte"""',
+        '0,100,"React, Vue, and ""Svelte"""',
         "93590,97210,Late night",
       ].join("\n")
     );
   });
 
   it("numbers labels so exported files sort in order", () => {
-    const labels = numberLabels(segments.filter((s) => s.type === "start"));
-    expect(labels.map((s) => s.label)).toEqual([
+    const clips = segments.filter((s) => s.type === "start");
+    expect(numberLabels(clips).map((s) => s.label)).toEqual([
       "01 Intro",
       '02 React, Vue, and "Svelte"',
       "03 Late night",
     ]);
+    // A clip keeps its number when an export leaves earlier clips out
+    const order = clips.map((s) => s.id);
+    expect(numberLabels(clips.slice(2), order)[0]!.label).toBe("03 Late night");
+  });
+
+  it("finds the camera start from an OFFSET marker", () => {
+    const withTime = buildSegments({
+      markers: [marker(300, "OFFSET 00:08:20")],
+      videoSeconds: 1000,
+    });
+    const bare = buildSegments({
+      markers: [marker(300, "OFFSET")],
+      videoSeconds: 1000,
+    });
+    const none = buildSegments({
+      markers: [marker(300, "Chrome")],
+      videoSeconds: 1000,
+    });
+
+    expect(findMarkedOffset(withTime)).toBe(500);
+    expect(findMarkedOffset(bare)).toBe(300);
+    expect(findMarkedOffset(none)).toBeUndefined();
   });
 
   it("starts YouTube chapters at 00:00:00 when the offset skips early clips", () => {

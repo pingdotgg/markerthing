@@ -14,13 +14,14 @@ I wanted a better way to manage the markers from my streams. I use them as refer
 ### My workflow:
 
 - Stream on Twitch, record vod + footage on camera
+  - When I start the camera recording, I add \`/marker OFFSET\`, so MarkerThing knows where the camera footage starts
 - During stream, create new markers using \`/marker (name of marker)\` command
   - Forgot to mark something? Start the name with a rewind, like \`/marker -2 (name of marker)\` to go back 2 minutes, or \`-30s\` for 30 seconds
   - Lose track of time? Add the [OBS embed](/embed) to see your current marker and how long it has been going
 - End of stream, download CSVs from MarkerThing
-  - I make a second offset CSV for my camera footage, since I start recording it after I start the stream
+  - One CSV for the VOD, and one for the camera recording. The camera CSV uses the OFFSET marker, or a start time I set from the player
 - Open LosslessCut, drag VOD in, drag CSV in, "export"
-- ^ again, with camera recordings + offset CSV
+- ^ again, with the camera recording + camera CSV
 
 This workflow takes me ~3 minutes, and it enables my team to quickly grab 5+ videos worth of content after every stream.
 

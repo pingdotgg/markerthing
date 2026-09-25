@@ -4,7 +4,8 @@
 // "Talking about Chrome"        starts a clip
 // "START: Talking about Chrome" same as above ("START" and "START OF" work too)
 // "END: Talking about Chrome"   ends the previous clip ("END" and "END OF" work too)
-// "OFFSET 00:40:31"             offset for camera footage (00-40-31 works too)
+// "OFFSET"                      camera recording starts here
+// "OFFSET 00:40:31"             camera recording starts 40:31 into the stream
 // "-2 Talking about Chrome"     starts 2 minutes before the marker was placed
 // "-30s Talking about Chrome"   starts 30 seconds before the marker was placed
 
@@ -98,7 +99,7 @@ export function formatSeconds(totalSeconds: number): string {
   )}:${pad(seconds % 60)}`;
 }
 
-// Each marker runs until the next one (or the end of the VOD).
+// Each marker runs until the next START or END marker (or the end of the VOD).
 // Start clips that end before the offset are dropped, since they are not in
 // the offset footage.
 export function buildSegments(opts: {
@@ -136,7 +137,9 @@ export function buildSegments(opts: {
       ];
 
   return withIntro.flatMap((marker, i) => {
-    const vodEnd = withIntro[i + 1]?.vodStart ?? opts.videoSeconds;
+    // OFFSET markers only say where the camera starts, so they do not end a clip
+    const next = withIntro.slice(i + 1).find((m) => m.type !== "offset");
+    const vodEnd = next?.vodStart ?? opts.videoSeconds;
     if (marker.type === "start" && vodEnd <= offset) return [];
 
     return {
@@ -151,13 +154,30 @@ export function buildSegments(opts: {
 const toCsvField = (value: string) =>
   /[",\r\n]/.test(value) ? `"${value.replaceAll('"', '""')}"` : value;
 
-// Prefixes labels with "01 ", "02 "... so exported files sort in order
-export function numberLabels<T extends { label: string }>(clips: T[]): T[] {
-  const width = Math.max(2, String(clips.length).length);
-  return clips.map((clip, i) => ({
+// Prefixes labels with "01 ", "02 "... so exported files sort in order.
+// `order` lists every clip ID, so a clip keeps its number in every export.
+export function numberLabels<T extends { id: string; label: string }>(
+  clips: T[],
+  order: string[] = clips.map((clip) => clip.id)
+): T[] {
+  return clips.map((clip) => ({
     ...clip,
-    label: `${String(i + 1).padStart(width, "0")} ${clip.label}`,
+    label: `${formatClipNumber(order.indexOf(clip.id) + 1, order.length)} ${
+      clip.label
+    }`,
   }));
+}
+
+// "01", "02"... padded to fit the total
+export const formatClipNumber = (n: number, total: number) =>
+  String(n).padStart(Math.max(2, String(total).length), "0");
+
+// Where the camera recording starts, from the first OFFSET marker.
+// "OFFSET 00:40:31" gives the time. A bare "OFFSET" uses its own position.
+export function findMarkedOffset(segments: Segment[]): number | undefined {
+  const marker = segments.find((s) => s.type === "offset");
+  if (!marker) return undefined;
+  return parseOffsetValue(marker.label) ?? marker.vodStart;
 }
 
 // CSV for LosslessCut: "start,end,label" per clip, in seconds

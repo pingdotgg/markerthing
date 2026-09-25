@@ -6,6 +6,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import toast, { Toaster } from "react-hot-toast";
 import {
   buildSegments,
+  findMarkedOffset,
+  formatClipNumber,
   formatSeconds,
   numberLabels,
   parseOffsetValue,
@@ -27,50 +29,132 @@ function setUrlParam(key: string, value: string | undefined) {
   window.history.replaceState(null, "", url);
 }
 
-const inputClasses =
-  "border bg-zinc-950 px-2 py-1 font-mono outline-none focus:border-white";
+// "1:05:12" or "5:12"
+const formatClock = (totalSeconds: number) => {
+  const [h, m, s] = formatSeconds(totalSeconds).split(":").map(Number);
+  const ss = String(s).padStart(2, "0");
+  return h ? `${h}:${String(m).padStart(2, "0")}:${ss}` : `${m}:${ss}`;
+};
+
+// "1h 20m", "10m 8s" or "45s"
+const formatLength = (totalSeconds: number) => {
+  const [h, m, s] = formatSeconds(totalSeconds).split(":").map(Number);
+  if (h) return `${h}h ${m}m`;
+  if (m) return s ? `${m}m ${s}s` : `${m}m`;
+  return `${s}s`;
+};
+
 const buttonClasses =
   "border border-zinc-700 px-3 py-1.5 hover:bg-zinc-900 aria-disabled:pointer-events-none aria-disabled:opacity-40";
 
+const PlayIcon = () => (
+  <svg viewBox="0 0 10 10" className="h-2.5 w-2.5 fill-current">
+    <path d="M1 0.5v9l8-4.5z" />
+  </svg>
+);
+
+// Copy chapters and download CSV for one set of clips
+const ExportRow = (props: {
+  title: React.ReactNode;
+  chapters: string;
+  csv: string;
+  fileName: string;
+  disabled?: boolean;
+}) => (
+  <div className="flex flex-wrap items-center gap-2">
+    <span className="mr-auto flex items-center gap-2 font-medium">
+      {props.title}
+    </span>
+    <button
+      type="button"
+      aria-disabled={props.disabled}
+      className={buttonClasses}
+      onClick={() => {
+        navigator.clipboard.writeText(props.chapters);
+        toast.success("Copied YouTube chapters");
+      }}
+    >
+      Copy chapters
+    </button>
+    <a
+      href={`data:text/csv;charset=utf-8,${encodeURIComponent(props.csv)}`}
+      download={props.fileName}
+      aria-disabled={props.disabled}
+      className={`${buttonClasses} border-white bg-white text-black hover:bg-zinc-200`}
+    >
+      Download CSV
+    </a>
+  </div>
+);
+
 export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
   const { vod } = props;
+  const videoSeconds = parseTwitchDuration(vod.duration);
 
   const playerRef = useRef<Player | null>(null);
   const [scriptReady, setScriptReady] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
 
-  const [offsetInput, setOffsetInput] = useState(props.initial.offset);
   const [buffer, setBuffer] = useState(props.initial.buffer);
   const [numbered, setNumbered] = useState(props.initial.numbered);
   const [excluded, setExcluded] = useState<ReadonlySet<string>>(new Set());
   const [renamed, setRenamed] = useState<Record<string, string>>({});
+  const [editingId, setEditingId] = useState<string>();
 
-  // Empty means no offset. Anything else has to parse.
-  const offsetSeconds =
-    offsetInput.trim() === "" ? 0 : parseOffsetValue(offsetInput);
-  const offsetInvalid = offsetSeconds === undefined;
-
-  const segments = useMemo(
+  // Times in the list always match the Twitch VOD
+  const vodSegments = useMemo(
     () =>
       buildSegments({
         markers: vod.markers,
-        videoSeconds: parseTwitchDuration(vod.duration),
-        offsetSeconds: offsetSeconds ?? 0,
+        videoSeconds,
         bufferSeconds: buffer,
       }),
-    [vod, offsetSeconds, buffer]
+    [vod.markers, videoSeconds, buffer]
+  );
+  const clips = vodSegments.filter((s) => s.type === "start");
+
+  // An OFFSET marker fills in the camera start, unless the URL has one
+  const markedOffset = findMarkedOffset(vodSegments);
+  const [cameraInput, setCameraInput] = useState(
+    props.initial.offset ||
+      (markedOffset === undefined ? "" : formatClock(markedOffset))
+  );
+  const cameraSeconds =
+    cameraInput.trim() === "" ? undefined : parseOffsetValue(cameraInput);
+  const cameraInvalid =
+    cameraInput.trim() !== "" && cameraSeconds === undefined;
+
+  const cameraSegments = useMemo(
+    () =>
+      cameraSeconds === undefined
+        ? []
+        : buildSegments({
+            markers: vod.markers,
+            videoSeconds,
+            offsetSeconds: cameraSeconds,
+            bufferSeconds: buffer,
+          }),
+    [vod.markers, videoSeconds, cameraSeconds, buffer]
   );
 
-  const totalClips = segments.filter((s) => s.type === "start").length;
-  const clips = segments
-    .filter((s) => s.type === "start" && !excluded.has(s.id))
-    .map((s) => ({ ...s, label: renamed[s.id] ?? s.label }));
-  const clipNumbers = new Map(clips.map((clip, i) => [clip.id, i + 1]));
-  const csvClips = numbered ? numberLabels(clips) : clips;
+  // The checked clips, with renames and optional "01 " numbers
+  const pick = (segments: Segment[]) =>
+    segments
+      .filter((s) => s.type === "start" && !excluded.has(s.id))
+      .map((s) => ({ ...s, label: renamed[s.id] ?? s.label }));
+  const vodClips = pick(vodSegments);
+  const order = vodClips.map((clip) => clip.id);
+  const toFileCsv = (picked: Segment[]) =>
+    toCsv(numbered ? numberLabels(picked, order) : picked);
+  const clipNumbers = new Map(
+    order.map((id, i) => [id, formatClipNumber(i + 1, order.length)])
+  );
 
-  // Rows start where a click seeks to: the marker minus the buffer
-  const activeId = segments.findLast(
-    (s) => Math.max(s.vodStart - buffer, 0) <= currentTime
+  // A clip is playing from its padded start until the next clip takes over
+  const activeId = clips.findLast(
+    (clip) =>
+      Math.max(clip.vodStart - buffer, 0) <= currentTime &&
+      currentTime < clip.vodEnd
   )?.id;
 
   useEffect(() => {
@@ -84,7 +168,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
     });
     playerRef.current = player;
 
-    // The embed has no time update event, so poll to highlight the playing clip
+    // The embed has no time update event, so poll to track the playhead
     const interval = setInterval(
       () => setCurrentTime(Math.floor(player.getCurrentTime())),
       1000
@@ -97,14 +181,14 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
     };
   }, [scriptReady, vod.id]);
 
-  const seek = (segment: Segment) => {
-    const time = Math.max(segment.vodStart - buffer, 0);
+  const seek = (clip: Segment) => {
+    const time = Math.max(clip.vodStart - buffer, 0);
     playerRef.current?.seek(time);
     setCurrentTime(time);
   };
 
-  const updateOffset = (value: string) => {
-    setOffsetInput(value);
+  const updateCamera = (value: string) => {
+    setCameraInput(value);
     const trimmed = value.trim();
     if (trimmed === "" || parseOffsetValue(trimmed) !== undefined) {
       setUrlParam("offset", trimmed || undefined);
@@ -119,13 +203,20 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
       return next;
     });
 
-  const numberWidth = Math.max(2, String(clips.length).length);
-  const csvName = `${vod.created_at.replaceAll(":", "-")} VOD MARKERS${
-    offsetSeconds ? ` - ${offsetSeconds}s` : ""
-  }.csv`;
+  const percent = (seconds: number) =>
+    `${(Math.min(seconds, videoSeconds) / (videoSeconds || 1)) * 100}%`;
+  const fileDate = vod.created_at.replaceAll(":", "-");
+
+  const cameraHint = cameraInvalid
+    ? "Use H:MM:SS, MM:SS or seconds."
+    : cameraSeconds === undefined
+    ? "Go to the moment your camera recording starts, then press Set to player time. Or add a marker named OFFSET when you start recording."
+    : markedOffset !== undefined && cameraSeconds === markedOffset
+    ? "From your OFFSET marker."
+    : undefined;
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto bg-black p-4 sm:flex-row sm:overflow-hidden">
+    <div className="flex min-h-0 flex-1 flex-col gap-6 overflow-y-auto bg-black p-4 sm:flex-row sm:overflow-hidden sm:p-6">
       <Script
         src="https://player.twitch.tv/js/embed/v1.js"
         onReady={() => setScriptReady(true)}
@@ -135,16 +226,52 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
       />
 
       {/* Video */}
-      <div className="flex min-w-0 flex-col gap-2 sm:flex-1">
+      <div className="flex min-w-0 flex-col gap-3 sm:flex-1">
         <div id="vod-player" className="aspect-video w-full bg-zinc-950" />
+
+        {/* Clips on the stream timeline. Gaps are time no clip covers. */}
+        <div className="relative h-4 w-full bg-zinc-950">
+          {clips.map((clip) => (
+            <button
+              key={clip.id}
+              type="button"
+              title={`${renamed[clip.id] ?? clip.label} (${formatClock(
+                clip.vodStart
+              )})`}
+              onClick={() => seek(clip)}
+              className={`absolute inset-y-0 border-l border-black ${
+                clip.id === activeId
+                  ? "bg-zinc-300"
+                  : excluded.has(clip.id)
+                  ? "bg-zinc-900"
+                  : "bg-zinc-700 hover:bg-zinc-500"
+              }`}
+              style={{
+                left: percent(clip.vodStart),
+                width: percent(clip.vodEnd - clip.vodStart),
+              }}
+            />
+          ))}
+          {cameraSeconds !== undefined && (
+            <div
+              className="pointer-events-none absolute -inset-y-1 w-0.5 bg-pink-500"
+              style={{ left: percent(cameraSeconds) }}
+            />
+          )}
+          <div
+            className="pointer-events-none absolute -inset-y-1 w-0.5 bg-white"
+            style={{ left: percent(currentTime) }}
+          />
+        </div>
+
         <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
           <h1 className="font-semibold">{vod.title}</h1>
-          <div className="font-mono flex gap-3 text-sm text-zinc-400">
+          <div className="flex gap-3 text-sm text-zinc-400">
             <Link href={`/${vod.user_login}`} className="hover:text-white">
               {vod.user_name}
             </Link>
             <span>{vod.created_at.slice(0, 10)}</span>
-            <span>{formatSeconds(parseTwitchDuration(vod.duration))}</span>
+            <span>{formatLength(videoSeconds)}</span>
             <a
               href={vod.url}
               target="_blank"
@@ -157,154 +284,160 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
         </div>
       </div>
 
-      {/* Markers */}
-      <div className="flex min-h-0 shrink-0 flex-col gap-3 text-sm sm:w-[30rem]">
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <label className="flex items-center gap-2">
-            Offset
-            <input
-              value={offsetInput}
-              onChange={(e) => updateOffset(e.target.value)}
-              placeholder="00:00:00"
-              aria-invalid={offsetInvalid}
-              className={`${inputClasses} w-24 ${
-                offsetInvalid ? "border-red-500" : "border-zinc-800"
-              }`}
-            />
-          </label>
-          <label className="flex items-center gap-2">
-            Buffer
-            <input
-              type="number"
-              min={0}
-              value={buffer}
-              onChange={(e) => {
-                const value = Math.max(0, Math.floor(Number(e.target.value)));
-                setBuffer(value);
-                setUrlParam("buffer", String(value));
-              }}
-              className={`${inputClasses} w-16 border-zinc-800`}
-            />
-            s
-          </label>
-          <label className="flex items-center gap-2">
-            <input
-              type="checkbox"
-              checked={numbered}
-              onChange={(e) => {
-                setNumbered(e.target.checked);
-                setUrlParam("numbered", e.target.checked ? "1" : undefined);
-              }}
-              className="accent-white"
-            />
-            Number files
-          </label>
+      {/* Clips and export */}
+      <div className="flex min-h-0 shrink-0 flex-col gap-4 sm:w-[26rem]">
+        <div className="flex items-baseline justify-between">
+          <h2 className="font-semibold">Clips</h2>
+          <span className="text-sm">{`${vodClips.length} of ${clips.length} selected`}</span>
         </div>
 
-        <div className="flex items-center gap-2">
-          <span className="font-mono mr-auto text-zinc-400">
-            {`${clips.length}/${totalClips} clips`}
-          </span>
-          <button
-            type="button"
-            aria-disabled={offsetInvalid}
-            className={buttonClasses}
-            onClick={() => {
-              navigator.clipboard.writeText(toYouTubeChapters(clips));
-              toast.success("Copied YouTube chapters");
-            }}
-          >
-            Copy chapters
-          </button>
-          <a
-            href={`data:text/csv;charset=utf-8,${encodeURIComponent(
-              toCsv(csvClips)
-            )}`}
-            download={csvName}
-            aria-disabled={offsetInvalid}
-            className={`${buttonClasses} border-white bg-white text-black hover:bg-zinc-200`}
-          >
-            Download CSV
-          </a>
-        </div>
-
-        <ol className="min-h-0 flex-1 overflow-y-auto border-t border-zinc-800">
-          {segments.map((segment) => {
-            const included = !excluded.has(segment.id);
-            const number = clipNumbers.get(segment.id);
-
+        <ol className="min-h-0 flex-1 overflow-y-auto">
+          {clips.map((clip) => {
+            const included = !excluded.has(clip.id);
             return (
               <li
-                key={segment.id}
-                onClick={() => seek(segment)}
-                className={`font-mono grid h-9 cursor-pointer grid-cols-[1.25rem_1.75rem_4.5rem_1fr] items-center gap-2 border-b border-zinc-900 px-2 hover:bg-zinc-900 sm:grid-cols-[1.25rem_1.75rem_4.5rem_4.5rem_1fr] ${
-                  segment.id === activeId ? "bg-zinc-900" : ""
-                } ${segment.type === "start" ? "" : "text-zinc-500"}`}
+                key={clip.id}
+                className={`flex items-center gap-3 px-2 py-2 ${
+                  clip.id === activeId ? "bg-zinc-900" : ""
+                }`}
               >
-                {segment.type === "start" ? (
-                  <input
-                    type="checkbox"
-                    checked={included}
-                    onChange={() => toggleClip(segment.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    aria-label={`Export ${segment.label}`}
-                    className="accent-white"
-                  />
-                ) : (
-                  <span />
+                <input
+                  type="checkbox"
+                  checked={included}
+                  onChange={() => toggleClip(clip.id)}
+                  aria-label={`Export ${clip.label}`}
+                  className="accent-white"
+                />
+                {numbered && (
+                  <span className="font-mono w-5 text-sm text-zinc-500">
+                    {clipNumbers.get(clip.id)}
+                  </span>
                 )}
-                <span className="text-zinc-500">
-                  {number ? String(number).padStart(numberWidth, "0") : ""}
-                </span>
-                <span>{formatSeconds(segment.startTime)}</span>
-                <span className="hidden text-zinc-500 sm:block">
-                  {segment.type === "start"
-                    ? formatSeconds(segment.endTime - segment.startTime)
-                    : ""}
-                </span>
-
-                {segment.type === "start" && (
+                {editingId === clip.id ? (
                   <input
-                    value={renamed[segment.id] ?? segment.label}
+                    autoFocus
+                    value={renamed[clip.id] ?? clip.label}
                     onChange={(e) =>
                       setRenamed((prev) => ({
                         ...prev,
-                        [segment.id]: e.target.value,
+                        [clip.id]: e.target.value,
                       }))
                     }
-                    onClick={(e) => e.stopPropagation()}
+                    onBlur={() => setEditingId(undefined)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") setEditingId(undefined);
+                    }}
                     aria-label="Clip name"
-                    className={`font-sans min-w-0 bg-transparent outline-none focus:bg-zinc-950 ${
-                      included ? "text-white" : "text-zinc-500 line-through"
-                    }`}
+                    className="min-w-0 flex-1 bg-zinc-900 px-1 outline-none"
                   />
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setEditingId(clip.id)}
+                    title="Click to rename"
+                    className={`min-w-0 flex-1 text-left decoration-zinc-600 underline-offset-4 hover:underline ${
+                      included ? "text-white" : "text-zinc-600 line-through"
+                    }`}
+                  >
+                    {renamed[clip.id] ?? clip.label}
+                  </button>
                 )}
-                {segment.type === "end" && (
-                  <span className="font-sans truncate">
-                    {segment.label ? `End: ${segment.label}` : "End"}
-                  </span>
-                )}
-                {segment.type === "offset" && (
-                  <span className="font-sans flex min-w-0 items-center gap-2">
-                    <span className="truncate">{`Offset ${segment.label}`}</span>
-                    {parseOffsetValue(segment.label) !== undefined && (
-                      <button
-                        type="button"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          updateOffset(segment.label);
-                        }}
-                        className="text-white underline"
-                      >
-                        Use
-                      </button>
-                    )}
-                  </span>
-                )}
+                <span className="text-sm text-zinc-500">
+                  {formatLength(clip.vodEnd - clip.vodStart)}
+                </span>
+                <button
+                  type="button"
+                  onClick={() => seek(clip)}
+                  title="Play from here"
+                  className="font-mono flex w-20 items-center justify-end gap-1.5 text-sm text-zinc-300 hover:text-white"
+                >
+                  <PlayIcon />
+                  {formatClock(clip.vodStart)}
+                </button>
               </li>
             );
           })}
         </ol>
+
+        <div className="flex flex-col gap-4 border-t border-zinc-800 pt-4 text-sm">
+          <ExportRow
+            title="Twitch VOD"
+            chapters={toYouTubeChapters(vodClips)}
+            csv={toFileCsv(vodClips)}
+            fileName={`${fileDate} VOD MARKERS.csv`}
+          />
+
+          <div className="flex flex-col gap-2">
+            <ExportRow
+              title={
+                <>
+                  <span className="h-2 w-2 bg-pink-500" />
+                  Camera recording
+                </>
+              }
+              chapters={toYouTubeChapters(pick(cameraSegments))}
+              csv={toFileCsv(pick(cameraSegments))}
+              fileName={`${fileDate} CAMERA MARKERS.csv`}
+              disabled={cameraSeconds === undefined}
+            />
+            <div className="flex flex-wrap items-center gap-2">
+              <span>Starts at</span>
+              <input
+                value={cameraInput}
+                onChange={(e) => updateCamera(e.target.value)}
+                placeholder="0:00:00"
+                aria-invalid={cameraInvalid}
+                aria-label="Camera recording start"
+                className={`font-mono w-24 border bg-black px-2 py-1 outline-none focus:border-white ${
+                  cameraInvalid ? "border-red-500" : "border-zinc-700"
+                }`}
+              />
+              <span>in the stream</span>
+              <button
+                type="button"
+                className={`${buttonClasses} ml-auto`}
+                onClick={() =>
+                  updateCamera(
+                    formatClock(playerRef.current?.getCurrentTime() ?? 0)
+                  )
+                }
+              >
+                Set to player time
+              </button>
+            </div>
+            {cameraHint && <p className="text-zinc-400">{cameraHint}</p>}
+          </div>
+
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2">
+            <label className="flex items-center gap-2">
+              Add
+              <input
+                type="number"
+                min={0}
+                value={buffer}
+                onChange={(e) => {
+                  const value = Math.max(0, Math.floor(Number(e.target.value)));
+                  setBuffer(value);
+                  setUrlParam("buffer", String(value));
+                }}
+                className="font-mono w-14 border border-zinc-700 bg-black px-2 py-1 outline-none focus:border-white"
+              />
+              s before and after each clip
+            </label>
+            <label className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                checked={numbered}
+                onChange={(e) => {
+                  setNumbered(e.target.checked);
+                  setUrlParam("numbered", e.target.checked ? "1" : undefined);
+                }}
+                className="accent-white"
+              />
+              Number file names
+            </label>
+          </div>
+        </div>
       </div>
     </div>
   );
