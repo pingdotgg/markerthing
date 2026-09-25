@@ -111,10 +111,12 @@ export const VODs = async (props: { username: string; after?: string }) => {
   const twitchUserId = await getTwitchUserId(props.username, creds);
   if (!twitchUserId) return <VodEmptyState />;
 
+  // Twitch keeps past broadcasts for 60 days at most, so the max page size of
+  // 100 fits almost every channel on one page. The page links cover the rest.
   const videoParams = new URLSearchParams({
     user_id: twitchUserId,
     type: "archive",
-    first: "24",
+    first: "100",
   });
   if (props.after) videoParams.set("after", props.after);
 
@@ -136,6 +138,12 @@ export const VODs = async (props: { username: string; after?: string }) => {
     throw new Error(vodResult.reason.message);
   }
 
+  // A failed live check only means the live VOD is not filtered out, so log
+  // it and still show the list.
+  if (streamResult.status === "rejected") {
+    console.error("Live stream check failed:", streamResult.reason);
+  }
+
   const vodData = vodResult.value.data;
   const streamData =
     streamResult.status === "fulfilled" ? streamResult.value.data : [];
@@ -146,7 +154,10 @@ export const VODs = async (props: { username: string; after?: string }) => {
   const filteredVodData = vodData.filter(
     ({ stream_id }) => !streamMap.has(stream_id)
   );
-  const nextCursor = vodResult.value.pagination?.cursor;
+  // Twitch can return an empty page near the end of the list. Treat an empty
+  // page as the end, and do not link past it.
+  const nextCursor =
+    filteredVodData.length > 0 ? vodResult.value.pagination?.cursor : undefined;
   const channelPath = `/${encodeURIComponent(props.username)}`;
   const olderVodsPath = nextCursor
     ? `${channelPath}?${new URLSearchParams({ after: nextCursor })}`
@@ -155,7 +166,11 @@ export const VODs = async (props: { username: string; after?: string }) => {
   return (
     <div className="my-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
       {filteredVodData.length === 0 ? (
-        <VodEmptyState />
+        props.after ? (
+          <p className="text-sm text-gray-500">No older VODs.</p>
+        ) : (
+          <VodEmptyState />
+        )
       ) : (
         filteredVodData.map((vod) => (
           <Link key={vod.id} href={`/v/${vod.id}`}>
