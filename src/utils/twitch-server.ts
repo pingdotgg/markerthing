@@ -49,8 +49,6 @@ const getValidTokenForCreator = async (creatorName: string) => {
 
   const creatorFoundInClerk = response.data[0];
 
-  console.log("found in clerk?", creatorFoundInClerk);
-
   // Early escape if we don't find this user in Clerk
   if (!creatorFoundInClerk) {
     throw new Error("User not found in Clerk");
@@ -58,6 +56,12 @@ const getValidTokenForCreator = async (creatorName: string) => {
 
   return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
 };
+
+export class TwitchMarkerAccessDeniedError extends Error {
+  constructor() {
+    super("Only the broadcaster or a Twitch editor can view these markers");
+  }
+}
 
 export const getVodWithMarkers = async (vodId: string, token: string) => {
   const vodResponse = await fetch(
@@ -69,34 +73,37 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
       cache: "no-store",
     }
   );
-  console.log("VOD RESPONSE", vodResponse.status);
+  if (!vodResponse.ok) {
+    throw new Error(
+      `Could not load VOD: Twitch returned ${vodResponse.status}`
+    );
+  }
 
-  const vodData = await vodResponse.json();
-  console.log("VOD DATA", vodData);
-
-  const creatorName = vodData?.data?.[0]?.user_login;
-
-  if (!creatorName) throw new Error("could not find vod data or user login");
-
-  const tokenForMarkers = await getValidTokenForCreator(creatorName);
+  const vodData = (await vodResponse.json()) as {
+    data?: Omit<VOD, "markers">[];
+  };
+  const vod = vodData.data?.[0];
+  if (!vod) throw new Error("VOD not found");
 
   const markersResponse = await fetch(
     `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100`,
     {
       method: "GET",
-      headers: generateTwitchRequestHeaders(tokenForMarkers),
-      next: { revalidate: 60 },
+      headers: generateTwitchRequestHeaders(token),
+      cache: "no-store",
     }
   );
+  if (markersResponse.status === 403) throw new TwitchMarkerAccessDeniedError();
+  if (!markersResponse.ok) {
+    throw new Error(
+      `Could not load markers: Twitch returned ${markersResponse.status}`
+    );
+  }
 
-  console.log("MARKER RESPONSE", markersResponse.status);
+  const markersData = (await markersResponse.json()) as TwitchMarkersResponse;
+  const markers = markersData.data?.[0]?.videos?.[0]?.markers ?? [];
 
-  const markersData = await markersResponse.json();
-  console.log("MARKER DATA", markersData);
-
-  const markers = markersData?.data?.[0]?.videos?.[0]["markers"] ?? [];
-
-  return { ...vodData?.data?.[0], markers } as VOD;
+  return { ...vod, markers };
 };
 
 export const getTwitchTokenFromClerk = async (clerkUserId: string) => {

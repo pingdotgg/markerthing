@@ -2,15 +2,12 @@ import { auth } from "@clerk/nextjs/server";
 import {
   getTwitchTokenFromClerk,
   getVodWithMarkers,
+  TwitchMarkerAccessDeniedError,
 } from "~/utils/twitch-server";
 import { VodPlayer } from "./player";
 import Script from "next/script";
 
 export const dynamic = "force-dynamic";
-
-// I do the revalidate 0 here because "force-dynamic" doesn't actually work
-// See: https://github.com/vercel/next.js/issues/47273
-export const revalidate = 60;
 
 export default async function VodPage({
   params,
@@ -23,7 +20,21 @@ export default async function VodPage({
 
   const token = await getTwitchTokenFromClerk(self.userId);
 
-  const vodDetails = await getVodWithMarkers(slug, token);
+  let vodDetails;
+  try {
+    vodDetails = await getVodWithMarkers(slug, token);
+  } catch (error) {
+    if (!(error instanceof TwitchMarkerAccessDeniedError)) throw error;
+    return (
+      <div className="my-auto px-4 text-center">
+        <h1 className="text-2xl font-semibold">Markers are private</h1>
+        <p className="mt-2 text-gray-300">
+          Sign in with the Twitch account that owns this VOD or has editor
+          access.
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>
