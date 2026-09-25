@@ -1,6 +1,16 @@
 name: CI
 
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build:
@@ -9,8 +19,6 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
-        with:
-          version: 8.15.9
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -29,9 +37,4 @@ jobs:
         run: pnpm test
 
       - name: Build
-        env:
-          NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY: pk_test_ZXhhbXBsZS5jb20k
-          CLERK_SECRET_KEY: sk_test_dummy
-          TWITCH_CLIENT_ID: dummy
-          TWITCH_CLIENT_SECRET: dummy
         run: pnpm build
