@@ -31,7 +31,7 @@ describe("getTwitchUserId", () => {
     await expect(getTwitchUserId("missing", "app-token")).resolves.toBeNull();
   });
 
-  it("reports an API failure instead of treating it as a missing account", async () => {
+  it("throws a clear error when the Twitch request fails", async () => {
     vi.stubGlobal(
       "fetch",
       vi.fn().mockResolvedValue(new Response(null, { status: 401 }))
