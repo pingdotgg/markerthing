@@ -189,6 +189,7 @@ describe("buildSegments", () => {
         marker(600, "React"),
       ],
       videoSeconds: 900,
+      offsetSeconds: 240,
       bufferSeconds: 0,
     });
 
@@ -197,6 +198,7 @@ describe("buildSegments", () => {
       ["00:04:00", 300, 600],
       ["React", 600, 900],
     ]);
+    expect(toCsv(segments)).toBe(["0,360,Chrome", "360,660,React"].join("\n"));
   });
 });
 
