@@ -11,7 +11,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "rm -rf .next/dev/types && next typegen && tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
