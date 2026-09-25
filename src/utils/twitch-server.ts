@@ -39,7 +39,7 @@ export type VOD = {
   duration: string;
 };
 
-// Used for vod markers
+// Used for VOD markers and the live topic embed
 const getValidTokenForCreator = async (creatorName: string) => {
   // Get token for the input displayName IF THEY HAVE SIGNED IN BEFORE
   const clerk = await clerkClient();
@@ -57,12 +57,9 @@ const getValidTokenForCreator = async (creatorName: string) => {
   return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
 };
 
-export class TwitchMarkerAccessDeniedError extends Error {
-  constructor() {
-    super("Only the broadcaster or a Twitch editor can view these markers");
-  }
-}
-
+// Loads a VOD and its markers. Markers are read with the creator's stored
+// token, so any signed-in user can view a connected creator's markers.
+// Throws on Twitch errors, so a failed request is not read as "no markers".
 export const getVodWithMarkers = async (vodId: string, token: string) => {
   const vodResponse = await fetch(
     `https://api.twitch.tv/helix/videos?id=${vodId}`,
@@ -74,30 +71,28 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
     }
   );
   if (!vodResponse.ok) {
-    throw new Error(
-      `Could not load VOD: Twitch returned ${vodResponse.status}`
-    );
+    throw new Error(`Twitch videos request failed: ${vodResponse.status}`);
   }
 
   const vodData = (await vodResponse.json()) as {
-    data?: Omit<VOD, "markers">[];
+    data?: (Omit<VOD, "markers"> & { user_login: string })[];
   };
   const vod = vodData.data?.[0];
-  if (!vod) throw new Error("VOD not found");
+
+  if (!vod) throw new Error("could not find vod data or user login");
+
+  const tokenForMarkers = await getValidTokenForCreator(vod.user_login);
 
   const markersResponse = await fetch(
     `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100`,
     {
       method: "GET",
-      headers: generateTwitchRequestHeaders(token),
-      cache: "no-store",
+      headers: generateTwitchRequestHeaders(tokenForMarkers),
+      next: { revalidate: 60 },
     }
   );
-  if (markersResponse.status === 403) throw new TwitchMarkerAccessDeniedError();
   if (!markersResponse.ok) {
-    throw new Error(
-      `Could not load markers: Twitch returned ${markersResponse.status}`
-    );
+    throw new Error(`Twitch markers request failed: ${markersResponse.status}`);
   }
 
   const markersData = (await markersResponse.json()) as TwitchMarkersResponse;
