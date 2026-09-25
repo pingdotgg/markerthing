@@ -42,7 +42,7 @@ export type VOD = {
   duration: string;
 };
 
-// Used for vod markers
+// Used for VOD markers and the live topic embed
 const getValidTokenForCreator = async (creatorName: string) => {
   // Get token for the input displayName IF THEY HAVE SIGNED IN BEFORE
   const clerk = await clerkClient();
@@ -52,8 +52,6 @@ const getValidTokenForCreator = async (creatorName: string) => {
 
   const creatorFoundInClerk = response.data[0];
 
-  console.log("found in clerk?", creatorFoundInClerk);
-
   // Early escape if we don't find this user in Clerk
   if (!creatorFoundInClerk) {
     throw new Error("User not found in Clerk");
@@ -62,6 +60,9 @@ const getValidTokenForCreator = async (creatorName: string) => {
   return await getTwitchTokenFromClerk(creatorFoundInClerk.id);
 };
 
+// Loads a VOD and its markers. Markers are read with the creator's stored
+// token, so any signed-in user can view a connected creator's markers.
+// Throws on Twitch errors, so a failed request is not read as "no markers".
 export const getVodWithMarkers = async (vodId: string, token: string) => {
   const vodResponse = await fetch(
     `https://api.twitch.tv/helix/videos?id=${vodId}`,
@@ -72,16 +73,18 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
       cache: "no-store",
     }
   );
-  console.log("VOD RESPONSE", vodResponse.status);
+  if (!vodResponse.ok) {
+    throw new Error(`Twitch videos request failed: ${vodResponse.status}`);
+  }
 
-  const vodData = await vodResponse.json();
-  console.log("VOD DATA", vodData);
+  const vodData = (await vodResponse.json()) as {
+    data?: (Omit<VOD, "markers"> & { user_login: string })[];
+  };
+  const vod = vodData.data?.[0];
 
-  const creatorName = vodData?.data?.[0]?.user_login;
+  if (!vod) throw new Error("could not find vod data or user login");
 
-  if (!creatorName) throw new Error("could not find vod data or user login");
-
-  const tokenForMarkers = await getValidTokenForCreator(creatorName);
+  const tokenForMarkers = await getValidTokenForCreator(vod.user_login);
 
   const markersResponse = await fetch(
     `https://api.twitch.tv/helix/streams/markers?video_id=${vodId}&first=100`,
@@ -91,15 +94,14 @@ export const getVodWithMarkers = async (vodId: string, token: string) => {
       next: { revalidate: 60 },
     }
   );
+  if (!markersResponse.ok) {
+    throw new Error(`Twitch markers request failed: ${markersResponse.status}`);
+  }
 
-  console.log("MARKER RESPONSE", markersResponse.status);
+  const markersData = (await markersResponse.json()) as TwitchMarkersResponse;
+  const markers = markersData.data?.[0]?.videos?.[0]?.markers ?? [];
 
-  const markersData = await markersResponse.json();
-  console.log("MARKER DATA", markersData);
-
-  const markers = markersData?.data?.[0]?.videos?.[0]["markers"] ?? [];
-
-  return { ...vodData?.data?.[0], markers } as VOD;
+  return { ...vod, markers };
 };
 
 export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
