@@ -41,7 +41,7 @@ function sendTwitchAPIRequest(path: string, title: string, creds: string) {
 }
 
 interface Pagination {
-  cursor: string;
+  cursor?: string;
 }
 
 interface TwitchVodRequest {
@@ -103,12 +103,20 @@ const VodEmptyState = () => {
   );
 };
 
-export const VODs = async (props: { username: string }) => {
+export const VODs = async (props: { username: string; after?: string }) => {
   const self = await auth();
   if (!self) throw new Error("you shouldn't be here");
 
   const creds = await getTwitchClientCredentials();
   const twitchUserId = await getTwitchUserId(props.username, creds);
+  if (!twitchUserId) return <VodEmptyState />;
+
+  const videoParams = new URLSearchParams({
+    user_id: twitchUserId,
+    type: "archive",
+    first: "24",
+  });
+  if (props.after) videoParams.set("after", props.after);
 
   // fetch vods from twitch api
 
@@ -116,11 +124,7 @@ export const VODs = async (props: { username: string }) => {
     PromiseSettledResult<TwitchVodRequest>,
     PromiseSettledResult<TwitchStreamRequest>
   ] = await Promise.allSettled([
-    sendTwitchAPIRequest(
-      `/helix/videos?user_id=${twitchUserId}`,
-      "Videos",
-      creds
-    ),
+    sendTwitchAPIRequest(`/helix/videos?${videoParams}`, "Videos", creds),
     sendTwitchAPIRequest(
       `/helix/streams?user_id=${twitchUserId}&type=live`,
       "Streams",
@@ -132,12 +136,9 @@ export const VODs = async (props: { username: string }) => {
     throw new Error(vodResult.reason.message);
   }
 
-  if (streamResult.status === "rejected") {
-    throw new Error(streamResult.reason.message);
-  }
-
   const vodData = vodResult.value.data;
-  const streamData = streamResult.value.data;
+  const streamData =
+    streamResult.status === "fulfilled" ? streamResult.value.data : [];
 
   const streamMap = new Map<string, boolean>(
     streamData.map((stream) => [stream.id, true])
@@ -145,6 +146,11 @@ export const VODs = async (props: { username: string }) => {
   const filteredVodData = vodData.filter(
     ({ stream_id }) => !streamMap.has(stream_id)
   );
+  const nextCursor = vodResult.value.pagination?.cursor;
+  const channelPath = `/${encodeURIComponent(props.username)}`;
+  const olderVodsPath = nextCursor
+    ? `${channelPath}?${new URLSearchParams({ after: nextCursor })}`
+    : null;
 
   return (
     <div className="my-auto flex max-w-7xl flex-wrap items-center justify-center gap-4 overflow-y-auto p-4">
@@ -181,6 +187,19 @@ export const VODs = async (props: { username: string }) => {
             </div>
           </Link>
         ))
+      )}
+      {(olderVodsPath || props.after) && (
+        <nav
+          className="flex w-full justify-center gap-3"
+          aria-label="VOD pages"
+        >
+          {props.after && (
+            <ButtonLink href={channelPath}>Latest VODs</ButtonLink>
+          )}
+          {olderVodsPath && (
+            <ButtonLink href={olderVodsPath}>Older VODs</ButtonLink>
+          )}
+        </nav>
       )}
     </div>
   );

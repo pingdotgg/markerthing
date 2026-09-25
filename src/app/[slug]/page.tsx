@@ -9,14 +9,19 @@ export const revalidate = 60;
 
 export default async function Home({
   params,
+  searchParams,
 }: {
   params: Promise<{ slug: string }>;
+  searchParams: Promise<{ after?: string | string[] }>;
 }) {
-  const { slug } = await params;
+  const [{ slug }, { after }] = await Promise.all([params, searchParams]);
   return (
     <div className="flex min-h-0 flex-1 items-center justify-center overflow-y-auto">
       <Suspense fallback={<LoadingPage />}>
-        <VODs username={slug} />
+        <VODs
+          username={slug}
+          after={typeof after === "string" ? after : undefined}
+        />
       </Suspense>
     </div>
   );
