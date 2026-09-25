@@ -119,7 +119,9 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
       }),
     [vod.markers, videoSeconds, buffer]
   );
-  const clips = vodSegments.filter((s) => s.type === "start");
+  // The clips you marked. The fake intro only labels chapters, so it is not
+  // listed or exported. toYouTubeChapters adds its own Intro chapter.
+  const clips = vodSegments.filter((s) => s.type === "start" && !s.isIntro);
 
   // An OFFSET marker fills in the camera start, unless the URL has one
   const markedOffset = findMarkedOffset(vodSegments);
@@ -153,7 +155,7 @@ export const VodPlayer = (props: { vod: VOD; initial: VodSettings }) => {
     // The checked clips, with renames and optional "01 " numbers
     const pick = (segments: Segment[]) =>
       segments
-        .filter((s) => s.type === "start" && !excluded.has(s.id))
+        .filter((s) => s.type === "start" && !s.isIntro && !excluded.has(s.id))
         .map((s) => ({ ...s, label: renamed[s.id]?.trim() || s.label }));
     const vodClips = pick(vodSegments);
     const cameraClips = pick(cameraSegments);
