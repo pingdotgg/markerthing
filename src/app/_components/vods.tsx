@@ -1,23 +1,13 @@
 import {
+  dropAppAccessToken,
   generateTwitchRequestHeaders,
+  getAppAccessToken,
   getTwitchUserId,
 } from "~/utils/twitch-server";
 import Link from "next/link";
 import Image from "next/image";
 import { auth } from "@clerk/nextjs/server";
 import { ButtonLink } from "./common/button";
-
-const getTwitchClientCredentials = async () => {
-  const response = await fetch(
-    `https://id.twitch.tv/oauth2/token?client_id=${process.env.TWITCH_CLIENT_ID}&client_secret=${process.env.TWITCH_CLIENT_SECRET}&grant_type=client_credentials`,
-    {
-      method: "POST",
-      redirect: "follow",
-    }
-  ).then((response) => response.json());
-
-  return response.access_token as string;
-};
 
 function sendTwitchAPIRequest(path: string, title: string, creds: string) {
   return fetch(`https://api.twitch.tv${path}`, {
@@ -107,8 +97,15 @@ export const VODs = async (props: { username: string; after?: string }) => {
   const self = await auth();
   if (!self) throw new Error("you shouldn't be here");
 
-  const creds = await getTwitchClientCredentials();
-  const twitchUserId = await getTwitchUserId(props.username, creds);
+  // After a failed Twitch request, drop the cached app token in case Twitch
+  // revoked it, so the next page load gets a new one
+  const creds = await getAppAccessToken();
+  const twitchUserId = await getTwitchUserId(props.username, creds).catch(
+    (error) => {
+      dropAppAccessToken();
+      throw error;
+    }
+  );
   if (!twitchUserId) return <VodEmptyState />;
 
   // Twitch keeps past broadcasts for 60 days at most, so the max page size of
@@ -135,12 +132,14 @@ export const VODs = async (props: { username: string; after?: string }) => {
   ]);
 
   if (vodResult.status === "rejected") {
+    dropAppAccessToken();
     throw new Error(vodResult.reason.message);
   }
 
   // A failed live check only means the live VOD is not filtered out, so log
   // it and still show the list.
   if (streamResult.status === "rejected") {
+    dropAppAccessToken();
     console.error("Live stream check failed:", streamResult.reason);
   }
 

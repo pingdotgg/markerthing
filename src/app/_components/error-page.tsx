@@ -10,7 +10,7 @@ export const ErrorPage = () => {
           An error occurred
         </h1>
         <p className="mt-6 text-base leading-7 text-gray-600">
-          Sorry, we couldn’t find the page you’re looking for.
+          Something went wrong while loading this page. Try again in a moment.
         </p>
         <div className="mt-10 flex items-center justify-center gap-x-6">
           <ButtonLink href="/" variant="primary">
