@@ -190,3 +190,74 @@ export function toYouTubeChapters(segments: Segment[]): string {
     )
     .join("\n");
 }
+
+export type LiveTopic = {
+  label: string;
+  type: "start" | "end";
+  // Unix ms. Includes any "-2" style rewind on the marker.
+  startedAt: number;
+  // The topic before this one, and how long it ran in ms. Null when there is none.
+  lastTopic: { label: string; ms: number } | null;
+};
+
+// Picks the current topic from the markers on a live stream.
+// The current topic is the last marker placed on this stream. Offset
+// markers are not topics. Markers from before the stream started are from
+// an older VOD, in case Twitch has not made one for this stream yet.
+export function getLiveTopicFromMarkers(opts: {
+  markers: { created_at: string; description: string }[];
+  // Unix ms
+  streamStart: number;
+}): LiveTopic {
+  const { streamStart } = opts;
+  const topics = opts.markers
+    .filter((marker) => Date.parse(marker.created_at) >= streamStart)
+    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
+    .map((marker) => {
+      const { rewindSeconds, description } = parseRewind(marker.description);
+      return {
+        ...parseMarkerLabel(description),
+        // A "-2" rewind only moves the timer start, not which topic is current
+        startedAt: Math.max(
+          Date.parse(marker.created_at) - rewindSeconds * 1000,
+          streamStart
+        ),
+      };
+    })
+    .filter(
+      (topic): topic is Omit<LiveTopic, "lastTopic"> => topic.type !== "offset"
+    );
+
+  // Same "Intro" fallback as the VOD page, unless a topic starts with the stream
+  const hasStartAtStreamStart = topics.some(
+    (t) => t.type === "start" && t.startedAt === streamStart
+  );
+  const withIntro = hasStartAtStreamStart
+    ? topics
+    : [
+        { label: "Intro", type: "start" as const, startedAt: streamStart },
+        ...topics,
+      ];
+
+  // The last topic is the newest start before the current one. It ran until
+  // the marker after it, which can be an END marker.
+  const currentIndex = withIntro.length - 1;
+  const lastIndex = withIntro
+    .slice(0, currentIndex)
+    .findLastIndex((t) => t.type === "start");
+
+  return {
+    ...withIntro[currentIndex]!,
+    lastTopic:
+      lastIndex === -1
+        ? null
+        : {
+            label: withIntro[lastIndex]!.label,
+            ms: Math.max(
+              withIntro[lastIndex + 1]!.startedAt -
+                withIntro[lastIndex]!.startedAt,
+              0
+            ),
+          },
+  };
+}

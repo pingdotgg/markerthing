@@ -1,5 +1,5 @@
 import { clerkClient } from "@clerk/nextjs/server";
-import { parseMarkerLabel, parseRewind } from "./markers";
+import { getLiveTopicFromMarkers, type LiveTopic } from "./markers";
 
 export const generateTwitchRequestHeaders = (accessToken: string) => {
   const headers = new Headers();
@@ -116,13 +116,6 @@ export const getTwitchTokenFromClerk = async (clerkUserId: string) => {
   return token;
 };
 
-export type LiveTopic = {
-  label: string;
-  type: "start" | "end";
-  // Unix ms. Includes any "-2" style rewind on the marker.
-  startedAt: number;
-};
-
 type TwitchMarkersResponse = {
   data?: { videos?: { markers?: VOD["markers"] }[] }[];
   pagination?: { cursor?: string };
@@ -176,33 +169,8 @@ export const getLiveTopic = async (
     if (!cursor) break;
   }
 
-  const streamStart = Date.parse(stream.started_at);
-
-  // The current topic is the last marker placed on this stream. Offset
-  // markers are not topics. Markers from before the stream started are from
-  // an older VOD, in case Twitch has not made one for this stream yet.
-  const topics = markers
-    .filter((marker) => Date.parse(marker.created_at) >= streamStart)
-    .sort((a, b) => Date.parse(a.created_at) - Date.parse(b.created_at))
-    .map((marker) => {
-      const { rewindSeconds, description } = parseRewind(marker.description);
-      return {
-        ...parseMarkerLabel(description),
-        // A "-2" rewind only moves the timer start, not which topic is current
-        startedAt: Math.max(
-          Date.parse(marker.created_at) - rewindSeconds * 1000,
-          streamStart
-        ),
-      };
-    })
-    .filter((topic): topic is LiveTopic => topic.type !== "offset");
-
-  // Same "Intro" fallback as the VOD page
-  return (
-    topics[topics.length - 1] ?? {
-      label: "Intro",
-      type: "start",
-      startedAt: streamStart,
-    }
-  );
+  return getLiveTopicFromMarkers({
+    markers,
+    streamStart: Date.parse(stream.started_at),
+  });
 };

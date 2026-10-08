@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildSegments,
   formatSeconds,
+  getLiveTopicFromMarkers,
   parseMarkerLabel,
   parseOffsetValue,
   parseRewind,
@@ -257,5 +258,40 @@ describe("exports", () => {
     expect(toYouTubeChapters(segments)).toBe(
       ['00:00:00 React, Vue, and "Svelte"', "25:59:50 Late night"].join("\n")
     );
+  });
+});
+
+describe("getLiveTopicFromMarkers", () => {
+  const streamStart = Date.parse("2026-10-07T00:00:00Z");
+  // A marker placed this many minutes into the stream
+  const liveMarker = (minutes: number, description: string) => ({
+    created_at: new Date(streamStart + minutes * 60_000).toISOString(),
+    description,
+  });
+  const lastTopic = (markers: { created_at: string; description: string }[]) =>
+    getLiveTopicFromMarkers({ markers, streamStart }).lastTopic;
+
+  it("gives the topic before the current one and how long it ran", () => {
+    expect(
+      lastTopic([liveMarker(0, "Chrome"), liveMarker(12, "Rust")])
+    ).toEqual({ label: "Chrome", ms: 12 * 60_000 });
+  });
+
+  it("counts the Intro as the first topic", () => {
+    expect(lastTopic([liveMarker(5, "Chrome")])).toEqual({
+      label: "Intro",
+      ms: 5 * 60_000,
+    });
+    expect(lastTopic([])).toBeNull();
+  });
+
+  it("ends the last topic at an END marker", () => {
+    expect(
+      lastTopic([
+        liveMarker(0, "Chrome"),
+        liveMarker(10, "END: Chrome"),
+        liveMarker(15, "Rust"),
+      ])
+    ).toEqual({ label: "Chrome", ms: 10 * 60_000 });
   });
 });

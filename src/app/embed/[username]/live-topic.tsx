@@ -2,9 +2,11 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { LiveTopic } from "~/utils/twitch-server";
+import type { LiveTopic } from "~/utils/markers";
 
 const REFRESH_MS = 10_000;
+// Longer last topic names are left out, so the line stays short
+const MAX_LAST_TOPIC_CHARS = 20;
 
 // "1:02:03" or "2:03"
 const formatElapsed = (ms: number) => {
@@ -47,12 +49,23 @@ export const LiveTopicView = (
           </div>
           <div
             className="font-mono font-bold tabular-nums leading-none"
-            style={{ fontSize: "min(18vw, 40vh)" }}
+            style={{ fontSize: "min(18vw, 32vh)" }}
             // Server and client clocks can be a second apart on first render
             suppressHydrationWarning
           >
             {formatElapsed(now - props.topic.startedAt)}
           </div>
+          {props.topic.lastTopic && (
+            // Duration first, so a narrow view cuts off the name, not the time
+            <div
+              className="font-mono truncate tabular-nums leading-tight"
+              style={{ fontSize: "min(6vw, 8vh)" }}
+            >
+              Last topic: {formatElapsed(props.topic.lastTopic.ms)}
+              {props.topic.lastTopic.label.length <= MAX_LAST_TOPIC_CHARS &&
+                ` (${props.topic.lastTopic.label})`}
+            </div>
+          )}
         </>
       ) : (
         <div style={{ fontSize: "min(9vw, 18vh)" }}>{props.status}</div>
