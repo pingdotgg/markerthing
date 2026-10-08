@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import type { LiveTopic } from "~/utils/twitch-server";
+import type { LiveTopic } from "~/utils/markers";
 
 const REFRESH_MS = 10_000;
 
@@ -53,6 +53,14 @@ export const LiveTopicView = (
           >
             {formatElapsed(now - props.topic.startedAt)}
           </div>
+          {props.topic.lastTopicMs !== null && (
+            <div
+              className="font-mono tabular-nums leading-none"
+              style={{ fontSize: "min(6vw, 12vh)" }}
+            >
+              Last topic: {formatElapsed(props.topic.lastTopicMs)}
+            </div>
+          )}
         </>
       ) : (
         <div style={{ fontSize: "min(9vw, 18vh)" }}>{props.status}</div>
