@@ -268,28 +268,30 @@ describe("getLiveTopicFromMarkers", () => {
     created_at: new Date(streamStart + minutes * 60_000).toISOString(),
     description,
   });
-  const lastTopicMs = (
-    markers: { created_at: string; description: string }[]
-  ) => getLiveTopicFromMarkers({ markers, streamStart }).lastTopicMs;
+  const lastTopic = (markers: { created_at: string; description: string }[]) =>
+    getLiveTopicFromMarkers({ markers, streamStart }).lastTopic;
 
-  it("gives how long the topic before the current one ran", () => {
-    expect(lastTopicMs([liveMarker(0, "Chrome"), liveMarker(12, "Rust")])).toBe(
-      12 * 60_000
-    );
+  it("gives the topic before the current one and how long it ran", () => {
+    expect(
+      lastTopic([liveMarker(0, "Chrome"), liveMarker(12, "Rust")])
+    ).toEqual({ label: "Chrome", ms: 12 * 60_000 });
   });
 
   it("counts the Intro as the first topic", () => {
-    expect(lastTopicMs([liveMarker(5, "Chrome")])).toBe(5 * 60_000);
-    expect(lastTopicMs([])).toBeNull();
+    expect(lastTopic([liveMarker(5, "Chrome")])).toEqual({
+      label: "Intro",
+      ms: 5 * 60_000,
+    });
+    expect(lastTopic([])).toBeNull();
   });
 
   it("ends the last topic at an END marker", () => {
     expect(
-      lastTopicMs([
+      lastTopic([
         liveMarker(0, "Chrome"),
         liveMarker(10, "END: Chrome"),
         liveMarker(15, "Rust"),
       ])
-    ).toBe(10 * 60_000);
+    ).toEqual({ label: "Chrome", ms: 10 * 60_000 });
   });
 });

@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import type { LiveTopic } from "~/utils/markers";
 
 const REFRESH_MS = 10_000;
+// Longer last topic names are left out, so the line stays short
+const MAX_LAST_TOPIC_CHARS = 20;
 
 // "1:02:03" or "2:03"
 const formatElapsed = (ms: number) => {
@@ -53,12 +55,15 @@ export const LiveTopicView = (
           >
             {formatElapsed(now - props.topic.startedAt)}
           </div>
-          {props.topic.lastTopicMs !== null && (
+          {props.topic.lastTopic && (
+            // Duration first, so a narrow view cuts off the name, not the time
             <div
-              className="font-mono tabular-nums leading-none"
+              className="font-mono truncate tabular-nums leading-tight"
               style={{ fontSize: "min(6vw, 8vh)" }}
             >
-              Last topic: {formatElapsed(props.topic.lastTopicMs)}
+              Last topic: {formatElapsed(props.topic.lastTopic.ms)}
+              {props.topic.lastTopic.label.length <= MAX_LAST_TOPIC_CHARS &&
+                ` (${props.topic.lastTopic.label})`}
             </div>
           )}
         </>

@@ -196,8 +196,8 @@ export type LiveTopic = {
   type: "start" | "end";
   // Unix ms. Includes any "-2" style rewind on the marker.
   startedAt: number;
-  // How long the topic before this one ran, in ms. Null when there is none.
-  lastTopicMs: number | null;
+  // The topic before this one, and how long it ran in ms. Null when there is none.
+  lastTopic: { label: string; ms: number } | null;
 };
 
 // Picks the current topic from the markers on a live stream.
@@ -225,8 +225,7 @@ export function getLiveTopicFromMarkers(opts: {
       };
     })
     .filter(
-      (topic): topic is Omit<LiveTopic, "lastTopicMs"> =>
-        topic.type !== "offset"
+      (topic): topic is Omit<LiveTopic, "lastTopic"> => topic.type !== "offset"
     );
 
   // Same "Intro" fallback as the VOD page, unless a topic starts with the stream
@@ -249,13 +248,16 @@ export function getLiveTopicFromMarkers(opts: {
 
   return {
     ...withIntro[currentIndex]!,
-    lastTopicMs:
+    lastTopic:
       lastIndex === -1
         ? null
-        : Math.max(
-            withIntro[lastIndex + 1]!.startedAt -
-              withIntro[lastIndex]!.startedAt,
-            0
-          ),
+        : {
+            label: withIntro[lastIndex]!.label,
+            ms: Math.max(
+              withIntro[lastIndex + 1]!.startedAt -
+                withIntro[lastIndex]!.startedAt,
+              0
+            ),
+          },
   };
 }
