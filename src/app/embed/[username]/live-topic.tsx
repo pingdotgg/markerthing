@@ -47,7 +47,7 @@ export const LiveTopicView = (
           </div>
           <div
             className="font-mono font-bold tabular-nums leading-none"
-            style={{ fontSize: "min(18vw, 40vh)" }}
+            style={{ fontSize: "min(18vw, 32vh)" }}
             // Server and client clocks can be a second apart on first render
             suppressHydrationWarning
           >
@@ -56,7 +56,7 @@ export const LiveTopicView = (
           {props.topic.lastTopicMs !== null && (
             <div
               className="font-mono tabular-nums leading-none"
-              style={{ fontSize: "min(6vw, 12vh)" }}
+              style={{ fontSize: "min(6vw, 8vh)" }}
             >
               Last topic: {formatElapsed(props.topic.lastTopicMs)}
             </div>
