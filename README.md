@@ -10,8 +10,23 @@ Returns the channel's latest finished stream VOD and all its markers as JSON. No
 
 ```json
 {
-  "vod": { "id": "...", "title": "...", "url": "...", "created_at": "...", "duration": "3h2m1s", "user_login": "theo" },
-  "markers": [{ "id": "...", "created_at": "...", "description": "Talking about Chrome", "position_seconds": 600, "URL": "..." }]
+  "vod": {
+    "id": "...",
+    "title": "...",
+    "url": "...",
+    "created_at": "...",
+    "duration": "3h2m1s",
+    "user_login": "theo"
+  },
+  "markers": [
+    {
+      "id": "...",
+      "created_at": "...",
+      "description": "Talking about Chrome",
+      "position_seconds": 600,
+      "URL": "..."
+    }
+  ]
 }
 ```
 
