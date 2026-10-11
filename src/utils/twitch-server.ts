@@ -134,6 +134,73 @@ const fetchTwitchLive = async <T>(path: string, token: string) => {
   return (await res.json()) as T;
 };
 
+// Loads every marker for a user (latest VOD) or a video_id. Markers come
+// oldest first, max 100 per page, so walk to the last page. The page cap is
+// only a guard against a bad cursor loop.
+const getAllMarkers = async (
+  query: { user_id: string } | { video_id: string },
+  token: string
+) => {
+  const markers: VOD["markers"] = [];
+  let cursor: string | undefined;
+  for (let page = 0; page < 10; page++) {
+    const params = new URLSearchParams({ ...query, first: "100" });
+    if (cursor) params.set("after", cursor);
+    const res = await fetchTwitchLive<TwitchMarkersResponse>(
+      `/streams/markers?${params}`,
+      token
+    );
+
+    markers.push(
+      ...(res?.data?.[0]?.videos?.flatMap((video) => video.markers ?? []) ?? [])
+    );
+    cursor = res?.pagination?.cursor;
+    if (!cursor) break;
+  }
+  return markers;
+};
+
+type TwitchVideo = {
+  id: string;
+  stream_id: string | null;
+  title: string;
+  url: string;
+  created_at: string;
+  duration: string;
+  user_login: string;
+};
+
+// Gets a creator's latest finished stream VOD and all its markers, for the
+// public API. Skips the VOD of a stream that is still live. Returns null
+// when the creator has no finished VODs.
+export const getLatestVodWithMarkers = async (creatorName: string) => {
+  const token = await getValidTokenForCreator(creatorName);
+  const userId = await getTwitchUserId(creatorName, token);
+  if (!userId) return null;
+
+  // While live, the newest archive is the live stream, so 2 is enough.
+  const [videos, streams] = await Promise.all([
+    fetchTwitchLive<{ data: TwitchVideo[] }>(
+      `/videos?user_id=${userId}&type=archive&first=2`,
+      token
+    ),
+    fetchTwitchLive<{ data: { id: string }[] }>(
+      `/streams?user_id=${userId}`,
+      token
+    ),
+  ]);
+  const liveStreamId = streams?.data[0]?.id;
+  const video = videos?.data.find((v) => v.stream_id !== liveStreamId);
+  if (!video) return null;
+
+  const markers = await getAllMarkers({ video_id: video.id }, token);
+  const { id, title, url, created_at, duration, user_login } = video;
+  return {
+    vod: { id, title, url, created_at, duration, user_login },
+    markers,
+  };
+};
+
 // Gets the current topic for a live creator, from the latest marker on the
 // live stream. Returns null when the creator is not live.
 export const getLiveTopic = async (
@@ -150,24 +217,7 @@ export const getLiveTopic = async (
   const stream = streamRes?.data[0];
   if (!stream) return null;
 
-  // Markers come oldest first, max 100 per page, so walk to the last page.
-  // The page cap is only a guard against a bad cursor loop.
-  const markers: VOD["markers"] = [];
-  let cursor: string | undefined;
-  for (let page = 0; page < 10; page++) {
-    const res = await fetchTwitchLive<TwitchMarkersResponse>(
-      `/streams/markers?user_id=${userId}&first=100${
-        cursor ? `&after=${cursor}` : ""
-      }`,
-      token
-    );
-
-    markers.push(
-      ...(res?.data?.[0]?.videos?.flatMap((video) => video.markers ?? []) ?? [])
-    );
-    cursor = res?.pagination?.cursor;
-    if (!cursor) break;
-  }
+  const markers = await getAllMarkers({ user_id: userId }, token);
 
   return getLiveTopicFromMarkers({
     markers,
